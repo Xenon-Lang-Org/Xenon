@@ -1,4 +1,4 @@
-module Data.Result
+module Utils.Data.Result
   ( Result (..),
     mapOk,
     mapErr,

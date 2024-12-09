@@ -3,14 +3,14 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Control.Convert
+module Utils.Control.Convert
   ( Into (..),
     From (..),
     TryFrom (..),
     TryInto (..),
   )
 where
-import Data.Result (Result)
+import Utils.Data.Result (Result(..))
 
 
 -- | The 'Into' typeclass is used to convert a value of type @a@ into a value of type @b@.

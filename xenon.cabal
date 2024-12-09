@@ -22,6 +22,11 @@ source-repository head
   location: https://github.com/Xenon-Lang-Org/Xenon
 
 library
+  exposed-modules:
+      Parser.Data.SchemeParser
+      Utils.Control.Convert
+      Utils.Data.Result
+      Utils.System.Math
   other-modules:
       Paths_xenon
   autogen-modules:
@@ -74,7 +79,7 @@ test-suite test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
-      Example
+      ExampleSpec
       Paths_xenon
   autogen-modules:
       Paths_xenon
