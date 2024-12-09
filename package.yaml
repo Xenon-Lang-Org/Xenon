@@ -1,0 +1,77 @@
+name:                xenon
+version:             0.1.0.0
+github:              "Xenon-Lang-Org/Xenon"
+license:             BSD-3-Clause
+author:              "Leo Wehrle, Théodore Magna, Lucien Pineau, Alexis Halchemi, Karim Mohammed"
+maintainer:          "some-authors@epitech.eu"
+copyright:           "2024 all-authors"
+
+extra-source-files:
+- README.md
+
+description:         Please see the README on GitHub at <https://github.com/Xenon-Lang-Org/Xenon#README>
+
+dependencies:
+- base >= 4.7 && < 5
+- megaparsec
+- text
+- containers
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+
+library:
+  source-dirs: lib
+
+executables:
+  compiler:
+    main:                Main.hs
+    source-dirs:
+    - compiler
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - text
+    - containers
+    - xenon
+
+  wasm-interpreter:
+    main:                Main.hs
+    source-dirs:
+    - wasm-interpreter
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - text
+    - containers
+    - xenon
+
+
+tests:
+  test:
+    main:                Main.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - QuickCheck
+    - hspec
+    - hspec-discover
+    - megaparsec
+    - text
+    - containers
+    - xenon

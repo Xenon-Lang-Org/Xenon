@@ -1,0 +1,8 @@
+.stack-work/
+*~
+.direnv
+.vscode/
+result
+result-*
+.envrc
+run-lisp
