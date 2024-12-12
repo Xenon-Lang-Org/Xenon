@@ -6,3 +6,6 @@ result
 result-*
 .envrc
 run-lisp
+*.o
+*.hi
+*.wasm
