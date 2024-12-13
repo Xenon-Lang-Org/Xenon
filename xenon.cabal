@@ -23,7 +23,7 @@ source-repository head
 
 library
   exposed-modules:
-      Parser.Data.SchemeParser
+      Parser.Data.Ast
       Utils.Control.Convert
       Utils.Data.Result
       Utils.System.Math

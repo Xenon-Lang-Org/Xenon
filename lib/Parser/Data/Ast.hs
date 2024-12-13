@@ -82,7 +82,7 @@ data UnaryOp
     deriving (Show, Eq)
 
 -- Struct
-newtype Struct = [Field]
+newtype Struct = Struct [Field]
 
 -- Array
 data Array = Array Int [Expression] -- [<size>: <values>]
