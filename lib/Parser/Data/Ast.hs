@@ -14,17 +14,24 @@ module Parser.Data.Ast
 where
 
 
-data Program = Program [Statement]
-    deriving (Show, Eq)
+-- data Program = Program [Statement]
+--     deriving (Show, Eq)
+
+newtype Program = Program [Statement]
+
+type VariableName = String
+type FunctionName = String
+type Field = (VariableName, Type) -- <field_name>: <field_type>
 
 data Statement
-    = VariableDeclaration String Type (Maybe Expression) -- let <name>: <type> = <expression>
-    | FunctionDeclaration String [(String, Type)] (Maybe Type) [Statement] -- fn <name>(<args>) -> <type> { <body> }
+    = VariableDeclaration VariableName Type (Maybe Expression) -- let <name>: <type> = <expression>
+    | FunctionDeclaration FunctionName [Field] (Maybe Type) [Statement] -- fn <name>(<args>) -> <type> { <body> }
     -- | WhileLoop Expression [Statement] -- while (<condition>) { <body> }
     -- | Conditional Expression [Statement] (Maybe Statement) -- if <cond> { <body> } [elif <cond> { <body> }] [else { <body> }]
     -- | StructDeclaration String Struct -- type <name> = { <fields> }
     -- | ArrayDeclaration String Array -- let <name>: [<size>: <type>] = <values>
     -- | EnumDeclaration String [String] -- type <name> = <variants>
+    | ReasignmentStatement VariableName Expression -- x += 23; // x MUST be mutable
     | ExpressionStatement Expression -- standalone expression
     deriving (Show, Eq)
 
@@ -43,9 +50,6 @@ data Primitive
     | F32 | F64
     deriving (Show, Eq)
 
-type Field = (String, Type) -- <field_name>: <field_type>
-
--- Expressions
 data Expression
     = Variable String                     -- variable name
     | ELiteral Literal                     -- constant values
