@@ -9,3 +9,4 @@ run-lisp
 *.o
 *.hi
 *.wasm
+.bashrc

@@ -8,7 +8,6 @@ module Parser.Data.Ast
       Literal (..),
       BinOp (..),
       UnaryOp (..),
-      Struct,
       Array (..),
     )
 where
@@ -82,7 +81,7 @@ data UnaryOp
     deriving (Show, Eq)
 
 -- Struct
-newtype Struct = [Field]
+-- newtype Struct = [Field]
 
 -- Array
 data Array = Array Int [Expression] -- [<size>: <values>]
