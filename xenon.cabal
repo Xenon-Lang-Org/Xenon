@@ -23,6 +23,7 @@ source-repository head
 
 library
   exposed-modules:
+      Interpreter.Environment
       Interpreter.Evaluator
       Interpreter.Scope
       Parser.Data.Ast

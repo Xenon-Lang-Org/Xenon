@@ -1,7 +1,8 @@
 module Interpreter.Scope
     (
         Scope,
-        fromScope
+        fromScope,
+        scopePush
     )
 where
 
@@ -17,9 +18,14 @@ statementName s = case s of
     _ -> Err "Invalid Statement"
 
 fromScope :: Scope -> String -> Result String Statement
-fromScope [] n = Err $ n ++ " not found in current scope"
+fromScope [] n = Err $ n ++ " is undefined"
 fromScope (x:xs) n = case statementName x of
     (Err msg) -> Err msg
     (Ok sn) | sn == n -> Ok x
     (Ok _) -> fromScope xs n
 
+scopePush :: Scope -> Statement -> Scope
+scopePush scope s = case s of
+    VariableDeclaration {} -> s : scope
+    FunctionDeclaration {} -> s : scope
+    _ -> scope
