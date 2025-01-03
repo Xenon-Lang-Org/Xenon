@@ -1,16 +1,12 @@
 import Parser.Data.Ast
-import Interpreter.Environment
 import Interpreter.Evaluator
 
 
 main :: IO ()
 main = do
-    print $ callEnv env call declr
+    print $ evalProg prog
     where
-        g = [ VariableDeclaration "foo" (PrimitiveType I8) (Just $ ELiteral $ IntLiteral 42)
-            , VariableDeclaration "bar" (PrimitiveType I8) (Just $ ELiteral $ IntLiteral 42) ]
-        l = [ VariableDeclaration "hello" (PrimitiveType I8) (Just $ ELiteral $ IntLiteral 42)
-            , VariableDeclaration "world" (PrimitiveType I8) (Just $ ELiteral $ IntLiteral 42) ]
-        env = Env g l
-        declr = FunctionDeclaration "add" [("nb1", PrimitiveType I32), ("nb2", PrimitiveType I32)] (Just $ PrimitiveType I32) []
-        call = FunctionCall "add" [ELiteral $ IntLiteral 12, ELiteral $ IntLiteral 42]
+        prog = Program [ VariableDeclaration "foo" (PrimitiveType F32) (Just $ ELiteral $ FloatLiteral 50.5)
+                       , VariableDeclaration "bar" (PrimitiveType U8) (Just $ ELiteral $ IntLiteral 256) 
+                       , FunctionDeclaration "add" [("a", PrimitiveType I32), ("b", PrimitiveType I32)] (Just $ PrimitiveType I32) [ExpressionStatement $ BinaryOp Add (Variable "a") (Variable "b")]
+                       , ExpressionStatement $ FunctionCall "add" [Variable "foo", Variable "bar"]]

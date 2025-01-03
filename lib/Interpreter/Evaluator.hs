@@ -1,7 +1,9 @@
 module Interpreter.Evaluator
     (
         evalExpr,
-        callEnv
+        evalStatement,
+        evalStatementList,
+        evalProg
     )
 where
 
@@ -10,18 +12,89 @@ import Utils.Data.Result
 import Interpreter.Environment
 import Data.Foldable()
 import Data.List()
+import Interpreter.BinOp
+import Interpreter.Types
 
-evalExpr :: Env -> Expression -> Result String (Expression, Env)
-evalExpr env expr = Ok (expr, env)
+-- Expression
+evalExpr :: Env -> Expression -> Result String (Env, Expression)
+evalExpr env expr = case expr of
+    Variable v -> case fromEnv env v of
+        Ok (VariableDeclaration _ _ (Just val)) -> Ok (env, val)
+        Ok (VariableDeclaration _ _ Nothing) -> 
+            Err ("Uninitialized variable " ++ show v)
+        _ -> Err ("Undeclared variable " ++ show v)
 
-pushCallVar :: (Expression, (String, Type)) -> Result String Env -> Result String Env
-pushCallVar _ (Err msg) = Err msg
-pushCallVar (expr, (name, vtype)) (Ok env) = case evalExpr env expr of
-    Ok (nexpr, nenv) -> 
-        Ok $ pushLocal nenv (VariableDeclaration name vtype (Just nexpr))
+    ELiteral l -> Ok (env, ELiteral l)
+
+    BinaryOp op l r -> case evalExpr env l of
+        Ok (lenv, ELiteral el) -> case evalExpr lenv r of
+            Ok (renv, ELiteral er) -> Ok (renv, evalBinOp op el er)
+            _ -> Err "Failed to Evaluate binary operation"
+        _ -> Err "Failed to Evaluate binary operation"
+
+    UnaryOp _ _ -> Err "Unary operator are not supported yet"
+
+    FunctionCall fname args -> callFunc env fname args
+
+-- Statement
+
+declareVar :: Env -> Bool -> String -> Type -> Maybe Expression -> Result String Env
+declareVar env gl name vtype Nothing =
+    Ok $ pushEnv env gl (VariableDeclaration name vtype Nothing)
+declareVar env gl name vtype (Just expr) = case evalExpr env expr of
+    Ok (nenv, nexpr) -> case castExpr nexpr vtype of
+        Ok cexpr ->
+            Ok $ pushEnv nenv gl (VariableDeclaration name vtype (Just cexpr))
+        Err msg -> Err msg
     Err msg -> Err msg
 
-callEnv :: Env -> Expression -> Statement -> Result String Env
-callEnv (Env g _) (FunctionCall _ args) (FunctionDeclaration _ params _ _) =
-    foldr pushCallVar (Ok (Env g [])) (zip args params) 
-callEnv _ _ _ = Err "Failed to build call envrionment"
+evalStatement :: Env -> Bool -> Statement -> Result String Env
+evalStatement env gl st = case st of
+    VariableDeclaration name vtype val -> declareVar env gl name vtype val
+
+    FunctionDeclaration name params rt body ->
+        Ok $ pushEnv env gl (FunctionDeclaration name params rt body)
+    
+    ExpressionStatement expr -> case evalExpr env expr of
+        Ok (nenv, _) -> Ok nenv
+        Err msg -> Err msg
+
+-- Program
+
+evalStatementList :: Env -> Bool -> [Statement] -> Result String (Env, Expression)
+evalStatementList env _ [] = Ok (env, ELiteral $ IntLiteral 0)
+evalStatementList env _ [ExpressionStatement expr] = evalExpr env expr
+evalStatementList env gl (x:xs) = case evalStatement env gl x of
+    Ok nenv -> evalStatementList nenv gl xs
+    Err msg -> Err msg
+
+evalProg :: Program -> Result String (Env, Expression)
+evalProg (Program body) = evalStatementList (Env [] []) True body
+
+-- Function
+
+pushCallVar :: (Expression, (String, Type)) -> Result String (Env, Env) -> Result String (Env, Env)
+pushCallVar _ (Err msg) = Err msg
+pushCallVar (expr, (name, vtype)) (Ok (old, new)) = case evalExpr old expr of
+    Ok (nold, nexpr) -> case castExpr nexpr vtype of
+        Ok cexpr -> Ok (nold, pushLocal new (VariableDeclaration name vtype (Just cexpr)))
+        Err msg -> Err msg
+    Err msg -> Err msg
+
+callEnv :: Env -> [Expression] -> [(String, Type)] -> Result String Env
+callEnv (Env g l) args params =
+    case foldr pushCallVar (Ok (Env g l, Env g [])) (zip args params) of
+        Ok (_, new) -> Ok new
+        Err msg -> Err msg
+
+callFunc :: Env -> String -> [Expression] -> Result String (Env, Expression)
+callFunc env name args = case fromEnv env name of
+    Ok (FunctionDeclaration _ params _ body) -> 
+        case callEnv env args params of
+            Ok nenv -> case evalStatementList nenv False body of
+                Ok (_, rexpr) -> Ok (env, rexpr)
+                Err msg -> Err msg
+            Err msg -> Err msg
+    Ok (VariableDeclaration {}) -> Err $ name ++ " is not callable"
+    Err msg -> Err msg
+    _ -> Err $ name ++ " undefined"
