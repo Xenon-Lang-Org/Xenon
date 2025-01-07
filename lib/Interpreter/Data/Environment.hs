@@ -1,4 +1,4 @@
-module Interpreter.Environment
+module Interpreter.Data.Environment
     (
         Env(..),
         EnvVar(..),
@@ -16,35 +16,34 @@ where
 import Parser.Data.Ast
 import Utils.Data.Result
 
-data EnvVar = EVariable VariableName Type Expression
-            | EFunction FunctionName [Field] Type Body
+data EnvVar = EVariable String Type Expression
+            | EFunction String [Field] Type Body
             | EType String TypeDefinition
             deriving (Show)
 
-data Env = Env { global   :: [EnvVar]
-               , local    :: [EnvVar]
-               , is_global :: Bool   }
+data Env = Env { global     :: [EnvVar]
+               , local      :: [EnvVar]
+               , isGlobal   :: Bool
+               , returnVal  :: Expression}
 
 instance Show Env where
-    show (Env g l ig) = 
+    show (Env g l ig r) = 
         "\n-- " ++ getName ig ++ " Environment --\n" ++ unlines (map show g) ++
         "\n[Global]\n" ++ unlines (map (("- " ++) . show) g) ++
-        "\n[Local]\n" ++ unlines (map (("- " ++) . show) l)
+        "\n[Local]\n" ++ unlines (map (("- " ++) . show) l) ++
+        "\n[ReturnValue]: " ++ show r
         where
             getName True = "Global"
             getName False = "Local"
 
 newEnv :: Bool -> Env
-newEnv = Env [] []
-
-isGlobal :: Env -> Bool
-isGlobal (Env _ _ ig) = ig
+newEnv ig = Env [] [] ig (ELiteral $ IntLiteral 0)
 
 setGlobal :: Env -> Env
-setGlobal (Env g l _) = Env g l True
+setGlobal (Env g l _ r) = Env g l True r
 
 setLocal :: Env -> Env
-setLocal (Env g l _) = Env g l False
+setLocal (Env g l _ r) = Env g l False r
 
 varName :: EnvVar -> String
 varName (EVariable name _ _) = name
@@ -57,13 +56,13 @@ fromScope (x:xs) name | varName x == name = Ok x
                       | otherwise = fromScope xs name
 
 fromEnv :: Env -> String -> Result String EnvVar
-fromEnv (Env g l _) name = case fromScope l name of
+fromEnv (Env g l _ _) name = case fromScope l name of
     Ok s -> Ok s
     _ -> fromScope g name
 
 pushEnv :: Env -> EnvVar -> Env
-pushEnv (Env g l True) v = Env (v:g) l True
-pushEnv (Env g l False) v = Env g (v:l) False
+pushEnv (Env g l True r) v = Env (v:g) l True r
+pushEnv (Env g l False r) v = Env g (v:l) False r
 
 pushVariable :: Env -> Statement -> Result String Env
 pushVariable env (VariableDeclaration n t (Just v)) = case fromEnv env n of 

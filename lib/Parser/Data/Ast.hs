@@ -10,6 +10,10 @@ module Parser.Data.Ast
     UnaryOp (..),
     Struct,
     Array (..),
+    VariableName,
+    FunctionName,
+    Body,
+    TypeDefinition(..),
   )
 where
 
@@ -75,9 +79,8 @@ data Expression
   deriving (Show, Eq)
 
 data Literal
-  = -- | StringLiteral String
-    IntLiteral Int
-  | FloatLiteral Float
+  = IntLiteral Integer
+  | FloatLiteral Double
   deriving
     ( Show,
       Eq
