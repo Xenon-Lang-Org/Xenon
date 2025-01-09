@@ -53,6 +53,7 @@ executable compiler
       FillModuleData
       ModuleData
       WriteWASM
+      WriteWAT
       Paths_xenon
   autogen-modules:
       Paths_xenon

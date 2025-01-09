@@ -2,19 +2,17 @@ import Parser.Data.Ast
 import ModuleData
 import WriteWASM
 import FillModuleData
-
-printModule :: WASMModule -> IO ()
-printModule wasmModule = putStrLn (show wasmModule)
+import WriteWAT
 
 -- input to test function call compilation
 testFunctionCallAST :: Program
 testFunctionCallAST = Program [
-    FunctionDeclaration "add" [("a", PrimitiveType I32), ("b", PrimitiveType I32)] (PrimitiveType I32)
-        [ReturnStatement $ BinaryOp Add (Variable "a") (Variable "b")],
-    FunctionDeclaration "sub" [("a", PrimitiveType I32), ("b", PrimitiveType I32)] (PrimitiveType I32)
-        [ReturnStatement $ BinaryOp Sub (Variable "a") (Variable "b")],
-    FunctionDeclaration "main" [("a", PrimitiveType I32), ("b", PrimitiveType I32)] (PrimitiveType I32)
-        [ReturnStatement $ FunctionCall "sub" [Variable "a", Variable "b"]]
+    VariableDeclaration "bar" (PrimitiveType I32) (Just $ ELiteral $ IntLiteral (-256)),
+    FunctionDeclaration "addneg" [("a", PrimitiveType I32)] (PrimitiveType I32)
+        [ExpressionStatement $ BinaryOp Add (Variable "a") (Variable "bar")],
+    FunctionDeclaration "dowhile" [("a",PrimitiveType I32)] (PrimitiveType I32) [VariableDeclaration "x" (PrimitiveType I32) (Just (ELiteral (IntLiteral 0))),WhileLoop (BinaryOp Lt (Variable "x") (Variable "a")) [ExpressionStatement (BinaryOp Assign (Variable "x") (BinaryOp Add (Variable "x") (ELiteral (IntLiteral 1))))],ReturnStatement (Variable "x")],
+    FunctionDeclaration "main" [("a", PrimitiveType I32)] (PrimitiveType I32)
+        [ReturnStatement $ FunctionCall "dowhile" [Variable "a"]]
     ]
 
 -- input to test 4 functions compilation
