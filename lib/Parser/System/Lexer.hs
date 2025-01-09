@@ -311,10 +311,3 @@ instance MP.Stream TokenStream where
   takeWhile_ f (TokenStream s) =
     let (x, y) = span f s
      in (x, TokenStream y)
-
-main :: IO ()
-main = do
-  let input = "let ifs : i32 = -422222222222.222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222;"
-  case MP.runParser tokens "<FileName>" input of
-    Left err -> putStrLn $ MP.errorBundlePretty err
-    Right ts -> print ts
