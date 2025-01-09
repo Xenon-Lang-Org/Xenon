@@ -6,6 +6,31 @@ import FillModuleData
 printModule :: WASMModule -> IO ()
 printModule wasmModule = putStrLn (show wasmModule)
 
+-- input to test 4 functions compilation
+testMultipleFunctionAST :: Program
+testMultipleFunctionAST = Program 
+  [ FunctionDeclaration 
+      "add" 
+      [("a", PrimitiveType I32), ("b", PrimitiveType I32)] 
+      (PrimitiveType I32) 
+      [ ReturnStatement $ BinaryOp Add (Variable "a") (Variable "b") ]
+  , FunctionDeclaration 
+      "sub" 
+      [("a", PrimitiveType I32), ("b", PrimitiveType I32)] 
+      (PrimitiveType I32) 
+      [ ReturnStatement $ BinaryOp Sub (Variable "a") (Variable "b") ]
+  , FunctionDeclaration
+      "mul"
+      [("a", PrimitiveType I32), ("b", PrimitiveType I32)]
+      (PrimitiveType I32)
+      [ ReturnStatement $ BinaryOp Mul (Variable "a") (Variable "b") ]
+  , FunctionDeclaration
+      "div"
+      [("a", PrimitiveType I32), ("b", PrimitiveType I32)]
+      (PrimitiveType I32)
+      [ ReturnStatement $ BinaryOp Div (Variable "a") (Variable "b") ]
+  ]
+
 -- input to test while loop compilation
 testWhileAST :: Program
 testWhileAST = Program [FunctionDeclaration "dowhile" [("a",PrimitiveType I32)] (PrimitiveType I32) [VariableDeclaration "x" (PrimitiveType I32) (Just (ELiteral (IntLiteral 0))),WhileLoop (BinaryOp Lt (Variable "x") (Variable "a")) [ExpressionStatement (BinaryOp Assign (Variable "x") (BinaryOp Add (Variable "x") (ELiteral (IntLiteral 1))))],ReturnStatement (Variable "x")]]
@@ -38,4 +63,4 @@ main = do
     printModule filledModule
     writeWasmModule "result.wasm" filledModule
   where
-    filledModule = fillWASMModuleFromAST testWhileAST
+    filledModule = fillWASMModuleFromAST testMultipleFunctionAST

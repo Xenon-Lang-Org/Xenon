@@ -218,7 +218,7 @@ encodeExportSection exps =
   if null exps then []
   else
     let sectionId = 0x07
-        encodeExport (ExportSection (Export nm kind)) =
+        encodeExport (ExportSection (Export nm kind)) index =
           let nmBytes  = C8.pack nm
               nmLen    = encodeU32LEB128 (BS.length nmBytes)
               kindByte = case kind of
@@ -226,9 +226,9 @@ encodeExportSection exps =
                 TableExport    -> 0x01
                 MemoryExport   -> 0x02
                 GlobalExport   -> 0x03
-          in nmLen ++ BS.unpack nmBytes ++ [kindByte] ++ encodeU32LEB128 0
+          in nmLen ++ BS.unpack nmBytes ++ [kindByte] ++ encodeU32LEB128 index
 
-        body = encodeVectorOfBlocks (map encodeExport exps)
+        body = encodeVectorOfBlocks (zipWith encodeExport exps [0..])
         sectionSize = encodeU32LEB128 (length body)
     in [sectionId] <> sectionSize <> body
 
