@@ -82,21 +82,63 @@ parseExpression = makeExprParser term operators
           InfixN (BinaryOp Ge <$ symbol ">=")
         ],
         [ InfixL (BinaryOp And <$ symbol "&&"),
-          InfixL (BinaryOp Or <$ symbol "||")
-        ]
+          InfixL (BinaryOp Or <$ symbol "||"),
+          InfixL (BinaryOp Mod <$ symbol "%")
+        ],
+        [ InfixL (BinaryOp BitAnd <$ symbol "&"),
+          InfixL (BinaryOp BitOr <$ symbol "|")
+        ],
+        [InfixL (BinaryOp Assign <$ symbol "=")]
       ]
 
 parens :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")
 
+parseExpressionStatement :: Parser Statement
+parseExpressionStatement = ExpressionStatement <$> parseExpression <* symbol ";"
+
 parseStatement :: Parser Statement
 parseStatement =
   choice
-    [ try parseVariableDeclaration,
+    [ 
+      -- try parseIfStatement,
+      try parseWhileLoop,
+      try parseVariableDeclaration,
       try parseFunctionDeclaration,
       try parseReturnStatement,
-      ExpressionStatement <$> parseExpression
+      parseExpressionStatement
     ]
+
+parseWhileLoop :: Parser Statement
+parseWhileLoop = do
+  reserved "while"
+  condition <- parseExpression
+  body <- braces (many parseStatement)
+  return $ WhileLoop condition body
+
+-- parseIfStatement :: Parser Statement
+-- parseIfStatement = do
+--   reserved "if"
+--   condition <- parens parseExpression
+--   thenBody <- braces (many parseStatement)
+--   elseClause <- optional parseElseClause
+--   return $ If condition thenBody elseClause
+
+-- -- parseElseClause :: Parser Body
+-- -- parseElseClause = do
+-- --   reserved "else"
+-- --   choice
+-- --     [ try parseElseIf,
+-- --       braces (many parseStatement)
+-- --     ]
+
+-- -- -- parseElseIf :: Parser Body
+-- -- -- parseElseIf = do
+-- -- --   reserved "elif"
+-- -- --   condition <- parens parseExpression
+-- -- --   thenBody <- braces (many parseStatement)
+-- -- --   elseClause <- optional parseElseClause
+-- -- --   return [ElseIf condition thenBody elseClause]
 
 parseVariableDeclaration :: Parser Statement
 parseVariableDeclaration =
@@ -122,7 +164,6 @@ parseFunctionDeclaration =
     body <- braces (many parseStatement <?> "statements inside function body") <?> "function body"
     return $ FunctionDeclaration name args returnType body
 
-  
 parseReturnStatement :: Parser Statement
 parseReturnStatement =
   -- withRecovery recover $
@@ -150,7 +191,8 @@ braces = between (symbol "{") (symbol "}")
 
 someMain :: IO ()
 someMain = do
-  let input = "let x: i32 = 42;\nfn add(a: i32, b: i32) - i32 {\n  let result: i32 = a + b;\n  return result;\n}\n"
-  case runParser parseProgram "<stdin>" input of
+  -- let input = "let x: i32 = 42;\nfn add(a: i32, b: i32) -> i32 {\n  if a > 5 {\n    return 0;\n  } else {\n    return a + b;\n  }\n}"
+  let xinput = "fn dowhile(a: i32) -> i32 {\n  let x: i32 = 0;\n  while x < a {\n    x = x + 1;\n  }\n  return x;\n}"
+  case runParser parseProgram "<stdin>" xinput of
     Left err -> putStrLn $ errorBundlePretty err
     Right result -> putStrLn $ "Parsed successfully: " ++ show result
