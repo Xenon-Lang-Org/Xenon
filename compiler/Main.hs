@@ -6,6 +6,17 @@ import FillModuleData
 printModule :: WASMModule -> IO ()
 printModule wasmModule = putStrLn (show wasmModule)
 
+-- input to test function call compilation
+testFunctionCallAST :: Program
+testFunctionCallAST = Program [
+    FunctionDeclaration "add" [("a", PrimitiveType I32), ("b", PrimitiveType I32)] (PrimitiveType I32)
+        [ReturnStatement $ BinaryOp Add (Variable "a") (Variable "b")],
+    FunctionDeclaration "sub" [("a", PrimitiveType I32), ("b", PrimitiveType I32)] (PrimitiveType I32)
+        [ReturnStatement $ BinaryOp Sub (Variable "a") (Variable "b")],
+    FunctionDeclaration "main" [("a", PrimitiveType I32), ("b", PrimitiveType I32)] (PrimitiveType I32)
+        [ReturnStatement $ FunctionCall "sub" [Variable "a", Variable "b"]]
+    ]
+
 -- input to test 4 functions compilation
 testMultipleFunctionAST :: Program
 testMultipleFunctionAST = Program 
@@ -63,4 +74,4 @@ main = do
     printModule filledModule
     writeWasmModule "result.wasm" filledModule
   where
-    filledModule = fillWASMModuleFromAST testMultipleFunctionAST
+    filledModule = fillWASMModuleFromAST testFunctionCallAST
