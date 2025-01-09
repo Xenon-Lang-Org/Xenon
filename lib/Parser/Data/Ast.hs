@@ -8,14 +8,17 @@ module Parser.Data.Ast
     Literal (..),
     BinOp (..),
     UnaryOp (..),
-    Struct,
+    Struct (..),
     Array (..),
+    TypeDefinition (..),
+    Mutablility (..),
+    FunctionName,
+    VariableName,
     Body,
   )
 where
 
--- data Program = Program [Statement]
---     deriving (Show, Eq)
+import Data.Word (Word64)
 
 newtype Program = Program [Statement]
   deriving (Show)
@@ -35,18 +38,25 @@ data Statement
   | If Expression Body (Maybe Body) -- if <cond> { <then_body> } [else { <else_body> }] NOTE: 'elif <cond> { }' is actually else '{ if <cond> { <then_body> } }'
   | TypeDeclaration !TypeDefinition -- type <name> = <typedef>
   | ReturnStatement Expression -- return <expression>
-  | ExpressionStatement Expression -- standalone expression
+  | StandaloneFunctionCall FunctionName [Expression] -- <func_name>(<args>)
+  | VariableReAssignment VariableName Expression -- <name> = <expression>
   deriving (Show, Eq)
 
 data TypeDefinition
   = StructDeclaration String Struct -- { <fields> }
   | ArrayDeclaration String (Int, Type) -- [<size>: <type>]
   | EnumDeclaration String [String] -- <variant1, variant2, ...>
+  | AliasDeclaration String Type -- <type>
+  deriving (Show, Eq)
+
+data Mutablility
+  = Mutable
+  | Immutable
   deriving (Show, Eq)
 
 data Type
   = PrimitiveType Primitive -- i8, u8, f32, etc.
-  | PointerType Bool Type -- `\*mut or *` <type>
+  | PointerType Mutablility Type -- `\*mut or *` <type> (True for mutable, False for immutable)
   | StructType [Field] -- { <name>: <type>, ... }
   | -- | ArrayType Int Type      -- [<size>: <type>]
     -- | EnumType [String]       -- <variant1, variant2, ...>
@@ -72,13 +82,13 @@ data Expression
   | BinaryOp BinOp Expression Expression -- <expr> <op> <expr>
   | UnaryOp UnaryOp Expression -- <op> <expr>
   | Parenthesis Expression -- (<expr>)
-  | FunctionCall String [Expression] -- <func_name>(<args>)
+  | FunctionCall FunctionName [Expression] -- <func_name>(<args>)
   deriving (Show, Eq)
 
 data Literal
   = -- | StringLiteral String
-    IntLiteral Int
-  | FloatLiteral Float
+    IntLiteral Word64
+  | FloatLiteral Double
   deriving
     ( Show,
       Eq
@@ -101,16 +111,15 @@ data BinOp
   | BitAnd -- `&`
   | BitOr -- `|`
   | BitXor -- `^`
-  | BitNot -- `~`
   | Shl -- <<
   | Shr -- >>
-  | Assign -- =
   deriving (Show, Eq)
 
 data UnaryOp
   = Dereference -- @
   | AddressOf -- ?
   | Negate -- !
+  | BitNot -- ~
   deriving (Show, Eq)
 
 -- Struct
@@ -118,5 +127,5 @@ newtype Struct = Struct [Field] -- { <fields> }
   deriving (Show, Eq)
 
 -- Array
-data Array = Array Int [Expression] -- [<size>: <values>]
+data Array = Array Int Type -- [<size>: <type>]
   deriving (Show, Eq)

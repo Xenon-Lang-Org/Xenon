@@ -51,11 +51,9 @@ spec = do
             parsedNum `shouldBe` n
           _ -> expectationFailure $ "Unexpected result: " ++ show result
 
--- Helper function to run the lexer
 runLexer :: String -> Either (MP.ParseErrorBundle String Void) [Token]
 runLexer = MP.runParser tokens "<quickcheck-test>"
 
--- Arbitrary generator for valid identifiers
 newtype ValidIdentifier = ValidIdentifier String
   deriving (Show, Eq)
 

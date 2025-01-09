@@ -146,10 +146,8 @@ spec = do
         Left err -> MP.errorBundlePretty err `shouldContain` "unexpected '#'"
         Right _ -> expectationFailure "Expected failure, but succeeded!"
 
--- Helper function to run the lexer and simplify error handling
 runLexer :: String -> Either (MP.ParseErrorBundle String Void) [Token]
 runLexer = MP.runParser tokens "<test>"
 
--- Helper to construct SourcePos for tokens
 pos :: Int -> Int -> MP.SourcePos
 pos line col = MP.SourcePos "<test>" (MP.mkPos line) (MP.mkPos col)

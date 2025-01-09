@@ -8,14 +8,15 @@ module Parser.System.Lexer
   )
 where
 
+import Data.Foldable (Foldable (toList))
 import Data.Void
 import qualified Text.Megaparsec as MP
 import qualified Text.Megaparsec.Char as C
 import qualified Text.Megaparsec.Char.Lexer as L
 
--- -----------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Token and TokenType definitions
--- -----------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 data Token = Token
   { tokenPos :: !MP.SourcePos,
@@ -33,32 +34,48 @@ data TokenType
   | TReturn -- 'return'
   | TType -- 'type'
   | TMut -- 'mut'
-  | TDot -- '.'
-  | TDereference -- '@'
-  | TAddressOf -- '?'
   | TColon -- ':'
   | TArrow -- '->'
   | TSemicolon -- ';'
   | TComma -- ','
-  | TEqSign -- '='
+  | TDot -- '.'
   | TOpenParen -- '('
   | TCloseParen -- ')'
   | TOpenBrace -- '{'
   | TCloseBrace -- '}'
   | TOpenBracket -- '['
   | TCloseBracket -- ']'
-  | TPlus -- '+'
-  | TMinus -- '-'
+  -- operators
+  | TNot -- '!'
+  | TAddressOf -- '?'
+  | TDereference -- '@'
+  | TNor -- '~'
+  --
   | TMult -- '*'
   | TDiv -- '/'
   | TMod -- '%'
-  | TAnd -- '&'
-  | TOr -- '|'
-  | TNot -- '!'
-  | TLess -- '<'
-  | TGreater -- '>'
-  | TXor -- '^'
-  | TNor -- '~'
+  --
+  | TPlus -- '+'
+  | TMinus -- '-'
+  --
+  | TEq -- '=='
+  | TNotEq -- '!='
+  | TLessEq -- '<='
+  | TGreaterEq -- '>='
+  | TLessThan -- '<'
+  | TGreaterThan -- '>'
+  --
+  | TAnd -- '&&'
+  | TOr -- '||'
+  --
+  | TBitAnd -- '&'
+  | TBitOr -- '|'
+  | TBitXor -- '^'
+  --
+  | TLShift -- '<<'
+  | TRShift -- '>>'
+  --
+  | TEqSign -- '='
   | TIntLit !Integer
   | TFloatLit !Double
   | TIdent !String
@@ -139,8 +156,11 @@ pSemicolon = symbol ";" TSemicolon
 pComma :: Lexer Token
 pComma = symbol "," TComma
 
-pAssign :: Lexer Token
-pAssign = symbol "=" TEqSign
+pDot :: Lexer Token
+pDot = symbol "." TDot
+
+pEqSign :: Lexer Token
+pEqSign = symbol "=" TEqSign
 
 pOpenParen :: Lexer Token
 pOpenParen = symbol "(" TOpenParen
@@ -166,6 +186,18 @@ pDereference = symbol "@" TDereference
 pAddressOf :: Lexer Token
 pAddressOf = symbol "?" TAddressOf
 
+pEq :: Lexer Token
+pEq = symbol "==" TEq
+
+pNotEq :: Lexer Token
+pNotEq = symbol "!=" TNotEq
+
+pLessEq :: Lexer Token
+pLessEq = symbol "<=" TLessEq
+
+pGreaterEq :: Lexer Token
+pGreaterEq = symbol ">=" TGreaterEq
+
 pPlus :: Lexer Token
 pPlus = symbol "+" TPlus
 
@@ -182,22 +214,28 @@ pMod :: Lexer Token
 pMod = symbol "%" TMod
 
 pAnd :: Lexer Token
-pAnd = symbol "&" TAnd
+pAnd = symbol "&&" TAnd
 
 pOr :: Lexer Token
-pOr = symbol "|" TOr
+pOr = symbol "||" TOr
+
+pBitAnd :: Lexer Token
+pBitAnd = symbol "&" TBitAnd
+
+pBitOr :: Lexer Token
+pBitOr = symbol "|" TBitOr
 
 pNot :: Lexer Token
 pNot = symbol "!" TNot
 
 pLess :: Lexer Token
-pLess = symbol "<" TLess
+pLess = symbol "<" TLessThan
 
 pGreater :: Lexer Token
-pGreater = symbol ">" TGreater
+pGreater = symbol ">" TGreaterThan
 
 pXor :: Lexer Token
-pXor = symbol "^" TXor
+pXor = symbol "^" TBitXor
 
 pNor :: Lexer Token
 pNor = symbol "~" TNor
@@ -248,7 +286,13 @@ tokenParser =
       pArrow,
       pSemicolon,
       pComma,
-      pAssign,
+      pDot,
+      pEq,
+      pNotEq,
+      pLessEq,
+      pGreaterEq,
+      pBitAnd,
+      pEqSign,
       pOpenParen,
       pCloseParen,
       pOpenBrace,
@@ -266,6 +310,8 @@ tokenParser =
       pMod,
       pAnd,
       pOr,
+      pBitAnd,
+      pBitOr,
       pNot,
       pLess,
       pGreater,
@@ -281,9 +327,9 @@ tokens = do
   eofToken <- pEOF
   return (ts ++ [eofToken])
 
--- -----------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- TokenStream for Megaparsec parser
--- -----------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 newtype TokenStream = TokenStream {getTokenStream :: [Token]}
   deriving (Show)
@@ -311,3 +357,14 @@ instance MP.Stream TokenStream where
   takeWhile_ f (TokenStream s) =
     let (x, y) = span f s
      in (x, TokenStream y)
+
+instance MP.VisualStream TokenStream where
+  showTokens _ = unwords . map show . toList
+
+reachEof :: MP.PosState s -> MP.PosState TokenStream
+reachEof pst = pst {MP.pstateInput = TokenStream []}
+
+instance MP.TraversableStream TokenStream where
+  reachOffset o pst
+    | o <= 0 = (Nothing, pst)
+    | otherwise = (Nothing, reachEof pst)
