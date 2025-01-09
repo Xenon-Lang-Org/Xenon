@@ -38,6 +38,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , binary
     , bytestring
     , containers
     , megaparsec
@@ -48,7 +49,10 @@ library
 executable compiler
   main-is: Main.hs
   other-modules:
+      EncodeNumbers
+      FillModuleData
       ModuleData
+      WriteWASM
       Paths_xenon
   autogen-modules:
       Paths_xenon
@@ -57,6 +61,7 @@ executable compiler
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , binary
     , bytestring
     , containers
     , megaparsec
@@ -76,6 +81,7 @@ executable wasm-interpreter
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , binary
     , bytestring
     , containers
     , megaparsec
@@ -89,7 +95,6 @@ test-suite test
   main-is: Main.hs
   other-modules:
       ExampleSpec
-      ParserSpec
       Paths_xenon
   autogen-modules:
       Paths_xenon
@@ -99,6 +104,7 @@ test-suite test
   build-depends:
       QuickCheck
     , base >=4.7 && <5
+    , binary
     , bytestring
     , containers
     , hspec
