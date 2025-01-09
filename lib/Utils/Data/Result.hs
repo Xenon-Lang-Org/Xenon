@@ -9,6 +9,7 @@ module Utils.Data.Result
     isErr,
   )
 where
+import Control.Applicative (Alternative (empty), (<|>))
 
 {- |
 The 'Result' type represents a value that can be either an error or a success.
@@ -83,6 +84,12 @@ instance Applicative (Result e) where
   (Ok f) <*> (Ok x) = Ok (f x)
   (Err e) <*> _ = Err e
   _ <*> (Err e) = Err e
+
+instance Alternative (Result e) where
+  empty = Err undefined
+  (Ok x) <|> _ = Ok x
+  _ <|> (Ok x) = Ok x
+  (Err e) <|> (Err _) = Err e
 
 instance Monad (Result e) where
   return = pure

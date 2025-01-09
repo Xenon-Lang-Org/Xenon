@@ -3,13 +3,13 @@ module Interpreter.Data.Environment
         Env(..),
         EnvVar(..),
         newEnv,
-        isGlobal,
         setGlobal,
         setLocal,
         fromEnv,
         pushVariable,
         pushFunction,
         pushType,
+        assignVar
     )
 where
 
@@ -21,8 +21,10 @@ data EnvVar = EVariable String Type Expression
             | EType String TypeDefinition
             deriving (Show)
 
-data Env = Env { global     :: [EnvVar]
-               , local      :: [EnvVar]
+type Scope = [EnvVar]
+
+data Env = Env { global     :: Scope
+               , local      :: Scope
                , isGlobal   :: Bool
                , returnVal  :: Expression}
 
@@ -31,7 +33,7 @@ instance Show Env where
         "\n-- " ++ getName ig ++ " Environment --\n" ++ unlines (map show g) ++
         "\n[Global]\n" ++ unlines (map (("- " ++) . show) g) ++
         "\n[Local]\n" ++ unlines (map (("- " ++) . show) l) ++
-        "\n[ReturnValue]: " ++ show r
+        "\n[ReturnValue]: " ++ show r ++ "\n"
         where
             getName True = "Global"
             getName False = "Local"
@@ -45,12 +47,28 @@ setGlobal (Env g l _ r) = Env g l True r
 setLocal :: Env -> Env
 setLocal (Env g l _ r) = Env g l False r
 
+setGlobalScope :: Env -> Scope -> Env
+setGlobalScope (Env _ l ig r) g = Env g l ig r
+
+setLocalScope :: Env -> Scope -> Env
+setLocalScope (Env g _ ig r) l = Env g l ig r
+
 varName :: EnvVar -> String
 varName (EVariable name _ _) = name
 varName (EFunction name _ _ _) = name
 varName (EType name _) = name
 
-fromScope :: [EnvVar] -> String -> Result String EnvVar
+assignScopeVar :: Scope -> String -> Expression -> Result String Scope
+assignScopeVar [] n _ = Err $ n ++ " is undefined"
+assignScopeVar s n v = assign s []
+    where
+        assign [] _ = Err $ n ++ " is undefined"
+        assign ((EVariable vn vt vv):xs) h
+            | vn == n = Ok (h ++ [EVariable vn vt v] ++ xs)
+            | otherwise = assign xs (h ++ [EVariable vn vt vv])
+        assign (x:xs) h = assign xs (h ++ [x])
+
+fromScope :: Scope -> String -> Result String EnvVar
 fromScope [] name = Err $ name ++ " is undefined" 
 fromScope (x:xs) name | varName x == name = Ok x
                       | otherwise = fromScope xs name
@@ -71,6 +89,13 @@ pushVariable env (VariableDeclaration n t (Just v)) = case fromEnv env n of
 pushVariable _ (VariableDeclaration n _ Nothing) =
     Err $ "Variable " ++ n ++ " must have a value to be added to env"
 pushVariable _ v = Err $ "Bad variable type (" ++ show v ++ ")"
+
+assignVar :: Env -> String -> Expression -> Result String Env
+assignVar env n v = case assignScopeVar (local env) n v of
+    Ok s -> Ok $ setLocalScope env s
+    _ -> case assignScopeVar (global env) n v of
+        Ok s -> Ok $ setGlobalScope env s
+        Err msg -> Err msg
 
 pushFunction :: Env -> Statement -> Result String Env
 pushFunction env (FunctionDeclaration n a t b) = case fromEnv env n of
