@@ -1,5 +1,6 @@
-module Interpreter.System.Operator
+module Interpreter.System.BinaryOperator
     (
+        both,
         evalBinOp
     )
 where
@@ -87,12 +88,6 @@ toNumFloat _ = Err "Invalid binary operator argument"
 toNumBits :: NumBits a => Expression -> Result String a
 toNumBits (ELiteral (IntLiteral n)) = Ok $ fromIntegral n
 toNumBits _ = Err "Invalid binary operator argument"
-
-both :: (a -> Result String b) -> (a, a) -> Result String (b, b)
-both f (x, y) = case (f x, f y) of
-    (Ok x', Ok y') -> Ok (x', y')
-    (Err msg, _) -> Err msg
-    (_, Err msg) -> Err msg
 
 floatEval :: BinOp -> Expression -> Expression -> Result String Expression
 floatEval op l r = case both toNumFloat (l, r) of
