@@ -1,4 +1,4 @@
-module Interpreter.System.BinaryOperator
+module Interpreter.System.BinaryOperation
     (
         both,
         evalBinOp
@@ -7,6 +7,7 @@ where
 
 import Parser.Data.Ast
 import Interpreter.Data.Environment
+import Interpreter.System.Types(castExpr)
 import Utils.Data.Result
 import Data.Bits((.&.), (.|.), (.^.), complement, shiftL, shiftR, Bits)
 import Control.Applicative
@@ -22,13 +23,11 @@ instance NumBits Integer
 
 -- Assign
 
-typeCompatible :: Type -> Expression -> Bool
-typeCompatible (PrimitiveType _) (ELiteral _) = True
-typeCompatible _ _ = False
-
 evalAssign :: Env -> Expression -> Expression -> Result String Env
-evalAssign env (Variable n) r = case fromEnv env n of
-    Ok (EVariable _ t _) | typeCompatible t r -> assignVar env n r
+evalAssign e (Variable n) r = case fromEnv e n of
+    Ok (EVariable _ t _) -> case castExpr e r t of
+        Ok r' -> assignVar e n r'
+        Err msg -> Err msg
     Err msg -> Err msg
     _ -> Err $ n ++ " is not assignable"
 evalAssign _ _ _ = Err "Bad assignment operation"
@@ -104,9 +103,9 @@ evalNonAssign Div l r = floatEval Div l r
 evalNonAssign op l r = bitsEval op l r <|> floatEval op l r
 
 evalBinOp :: Env -> BinOp -> Expression -> Expression -> Result String (Env, Expression)
-evalBinOp env Assign l r = case evalAssign env l r of
-    Ok env' -> Ok (env', r)
+evalBinOp e Assign l r = case evalAssign e l r of
+    Ok e' -> Ok (e', r)
     Err msg -> Err msg
-evalBinOp env op l r = case evalNonAssign op l r of
-    Ok e -> Ok (env, e)
+evalBinOp e op l r = case evalNonAssign op l r of
+    Ok res -> Ok (e, res)
     Err msg -> Err msg

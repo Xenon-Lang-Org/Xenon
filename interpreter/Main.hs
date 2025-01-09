@@ -1,17 +1,17 @@
 import Parser.Data.Ast
 import Interpreter.Data.Environment
-import Interpreter.System.Operator
+import Interpreter.System.BinaryOperation
 import Utils.Data.Result
+import Interpreter.System.Evaluator
 
 main :: IO ()
 main = do
-    print $ evalBinOp env Shl (ELiteral $ IntLiteral 1) (ELiteral $ IntLiteral 2)
+    print $ evalProg prog
     where
-        env = case pushVariable (newEnv False) (VariableDeclaration "my_var" (PrimitiveType I8) (Just $ ELiteral $ IntLiteral 0)) of
-            Ok env' -> env'
-            _ -> newEnv False
-        op = BinaryOp Assign (Variable "my_var") (ELiteral $ IntLiteral 12)
-        prog = Program [ VariableDeclaration "foo" (PrimitiveType F32) (Just $ ELiteral $ FloatLiteral 50.5)
-                       , VariableDeclaration "bar" (PrimitiveType U8) (Just $ ELiteral $ IntLiteral 256) 
-                       , FunctionDeclaration "add" [("a", PrimitiveType I32), ("b", PrimitiveType I32)] (PrimitiveType I32) [ExpressionStatement $ BinaryOp Add (Variable "a") (Variable "b")]
-                       , ExpressionStatement $ FunctionCall "add" [Variable "foo", Variable "bar"]]
+        prog = Program [ VariableDeclaration "nb" (PrimitiveType U32) (Just $ ELiteral $ IntLiteral 1)
+                       , VariableDeclaration "itt" (PrimitiveType U32) (Just $ ELiteral $ IntLiteral 0) 
+                       , FunctionDeclaration "shift" [("to", PrimitiveType I32)] (PrimitiveType I32) [
+                            WhileLoop (BinaryOp Lt (Variable "itt") (Variable "to")) [ ExpressionStatement $ BinaryOp Assign (Variable "nb") (BinaryOp Mul (Variable "nb") (ELiteral $ IntLiteral 2))
+                                                                                     , ExpressionStatement $ BinaryOp Assign (Variable "itt") (BinaryOp Add (Variable "itt") (ELiteral $ IntLiteral 1)) ]
+                       ]
+                       , ExpressionStatement $ FunctionCall "shift" [ELiteral $ IntLiteral 8]]

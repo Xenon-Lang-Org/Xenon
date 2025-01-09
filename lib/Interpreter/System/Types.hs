@@ -1,7 +1,8 @@
 module Interpreter.System.Types
     (
         castExpr,
-        toLiteralExpr
+        toLiteralExpr,
+        toBool
     )
 where
 
@@ -48,3 +49,12 @@ castExpr _ _ t = Err $ "Failed to cast expression to " ++ show t
 toLiteralExpr :: Type -> Expression -> Result String Literal
 toLiteralExpr _ (ELiteral v) = Ok v
 toLiteralExpr _ v = Err $ "Cannot deduce literal from " ++ show v
+
+numToBool :: (Num a, Eq a) => a -> Bool
+numToBool 0 = False
+numToBool _ = True
+
+toBool :: Expression -> Result String Bool
+toBool (ELiteral (IntLiteral n)) = Ok $ numToBool n
+toBool (ELiteral (FloatLiteral n)) = Ok $ numToBool n
+toBool _ = Err "Invalid boolean expression conversion"

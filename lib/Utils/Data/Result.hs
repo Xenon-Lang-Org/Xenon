@@ -94,7 +94,8 @@ instance Alternative (Result e) where
 
 instance Monad (Result e) where
   return = pure
-  (>>=) = andThen
+  (Ok x) >>= f = f x
+  (Err e) >>= _ = Err e
 
 instance (Eq o, Eq e) => Eq (Result o e) where
   (Ok x) == (Ok y) = x == y

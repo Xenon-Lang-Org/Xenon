@@ -2,9 +2,14 @@ module Interpreter.Data.Environment
     (
         Env(..),
         EnvVar(..),
-        newEnv,
+        env,
         setGlobal,
         setLocal,
+        setIsGlobal,
+        setLocalScope,
+        setGlobalScope,
+        fromLocal,
+        fromGlobal,
         fromEnv,
         pushVariable,
         pushFunction,
@@ -25,33 +30,42 @@ type Scope = [EnvVar]
 
 data Env = Env { global     :: Scope
                , local      :: Scope
-               , isGlobal   :: Bool
-               , returnVal  :: Expression}
+               , isGlobal   :: Bool}
 
 instance Show Env where
-    show (Env g l ig r) = 
-        "\n-- " ++ getName ig ++ " Environment --\n" ++ unlines (map show g) ++
+    show (Env g l ig) = 
+        "\n-- " ++ getName ig ++ " Environment --\n" ++
         "\n[Global]\n" ++ unlines (map (("- " ++) . show) g) ++
         "\n[Local]\n" ++ unlines (map (("- " ++) . show) l) ++
-        "\n[ReturnValue]: " ++ show r ++ "\n"
+        "---\n"
         where
             getName True = "Global"
             getName False = "Local"
 
-newEnv :: Bool -> Env
-newEnv ig = Env [] [] ig (ELiteral $ IntLiteral 0)
+env :: Bool -> Env
+env = Env [] []
 
 setGlobal :: Env -> Env
-setGlobal (Env g l _ r) = Env g l True r
+setGlobal (Env g l _) = Env g l True
 
 setLocal :: Env -> Env
-setLocal (Env g l _ r) = Env g l False r
+setLocal (Env g l _) = Env g l False
+
+setIsGlobal :: Bool -> Env -> Env
+setIsGlobal True = setGlobal
+setIsGlobal False = setLocal
 
 setGlobalScope :: Env -> Scope -> Env
-setGlobalScope (Env _ l ig r) g = Env g l ig r
+setGlobalScope (Env _ l ig) g = Env g l ig
 
 setLocalScope :: Env -> Scope -> Env
-setLocalScope (Env g _ ig r) l = Env g l ig r
+setLocalScope (Env g _ ig) l = Env g l ig
+
+fromLocal :: Bool -> Scope -> Env
+fromLocal = setLocalScope . env
+
+fromGlobal :: Bool -> Scope -> Env
+fromGlobal = setGlobalScope . env
 
 varName :: EnvVar -> String
 varName (EVariable name _ _) = name
@@ -74,33 +88,33 @@ fromScope (x:xs) name | varName x == name = Ok x
                       | otherwise = fromScope xs name
 
 fromEnv :: Env -> String -> Result String EnvVar
-fromEnv (Env g l _ _) name = case fromScope l name of
+fromEnv (Env g l _) name = case fromScope l name of
     Ok s -> Ok s
     _ -> fromScope g name
 
 pushEnv :: Env -> EnvVar -> Env
-pushEnv (Env g l True r) v = Env (v:g) l True r
-pushEnv (Env g l False r) v = Env g (v:l) False r
+pushEnv (Env g l True) v = Env (v:g) l True
+pushEnv (Env g l False) v = Env g (v:l) False
 
 pushVariable :: Env -> Statement -> Result String Env
-pushVariable env (VariableDeclaration n t (Just v)) = case fromEnv env n of 
+pushVariable e (VariableDeclaration n t (Just v)) = case fromEnv e n of 
     Ok _ -> Err $ n ++ " redefined"
-    _ -> Ok $ pushEnv env (EVariable n t v)
+    _ -> Ok $ pushEnv e (EVariable n t v)
 pushVariable _ (VariableDeclaration n _ Nothing) =
     Err $ "Variable " ++ n ++ " must have a value to be added to env"
 pushVariable _ v = Err $ "Bad variable type (" ++ show v ++ ")"
 
 assignVar :: Env -> String -> Expression -> Result String Env
-assignVar env n v = case assignScopeVar (local env) n v of
-    Ok s -> Ok $ setLocalScope env s
-    _ -> case assignScopeVar (global env) n v of
-        Ok s -> Ok $ setGlobalScope env s
+assignVar e n v = case assignScopeVar (local e) n v of
+    Ok s -> Ok $ setLocalScope e s
+    _ -> case assignScopeVar (global e) n v of
+        Ok s -> Ok $ setGlobalScope e s
         Err msg -> Err msg
 
 pushFunction :: Env -> Statement -> Result String Env
-pushFunction env (FunctionDeclaration n a t b) = case fromEnv env n of
+pushFunction e (FunctionDeclaration n a t b) = case fromEnv e n of
     Ok _ -> Err $ n ++ " redefined"
-    _ -> Ok $ pushEnv env (EFunction n a t b)
+    _ -> Ok $ pushEnv e (EFunction n a t b)
 pushFunction _ f = Err $ "Bad function type (" ++ show f ++ ")"
 
 typeDefName :: TypeDefinition -> String
@@ -109,9 +123,9 @@ typeDefName (ArrayDeclaration n _) = n
 typeDefName (EnumDeclaration n _) = n
 
 pushType :: Env -> Statement -> Result String Env
-pushType env (TypeDeclaration t) = case fromEnv env n of
+pushType e (TypeDeclaration t) = case fromEnv e n of
     Ok _ -> Err $ n ++ " redefined"
-    _ -> Ok $ pushEnv env (EType n t)
+    _ -> Ok $ pushEnv e (EType n t)
     where
         n = typeDefName t
 pushType _ t = Err $ "Bad type definition (" ++ show t ++ ")"
