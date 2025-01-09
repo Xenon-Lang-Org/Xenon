@@ -7,6 +7,7 @@ module Utils.Data.Result
     unwrapOr,
     isOk,
     isErr,
+    both,
   )
 where
 import Control.Applicative (Alternative (empty), (<|>))
@@ -146,3 +147,10 @@ isOk (Err _) = False
 -- Returns 'False' if the 'Result' is an 'Err'.
 isErr :: Result e a -> Bool
 isErr = not . isOk
+
+-- | Combines two 'Result's into a single 'Result' with a tuple of the values.
+both :: (a -> Result e b) -> (a, a) -> Result e (b, b)
+both f (x, y) = case (f x, f y) of
+    (Ok x', Ok y') -> Ok (x', y')
+    (Err err, _) -> Err err
+    (_, Err err) -> Err err
