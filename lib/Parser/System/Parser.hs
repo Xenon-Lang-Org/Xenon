@@ -16,7 +16,6 @@ import Parser.System.Lexer (Token (..), TokenStream, TokenType (..))
 import qualified Parser.System.Lexer as Lexer
 import Text.Megaparsec hiding (Token)
 
-
 type Parser = Parsec Void TokenStream
 
 -------------------------------------------------------------------------------
@@ -134,9 +133,9 @@ parseTypeDeclaration = do
   _ <- matchTokenType TType
   name <- parseIdentifier
   _ <- matchTokenType TEqSign
-  tyDef <- parseTypeDefinition name
+  tyDef <- parseType
   _ <- matchTokenType TSemicolon
-  return $ TypeDeclaration tyDef
+  return $ TypeDeclaration name tyDef
 
 -------------------------------------------------------------------------------
 -- Standalone Function Call: <func_name>(<args>);
@@ -160,59 +159,6 @@ parseVariableReAssignment = do
   expr <- parseExpression
   _ <- matchTokenType TSemicolon
   return $ VariableReAssignment name expr
-
--------------------------------------------------------------------------------
--- Parse Type Definitions
--------------------------------------------------------------------------------
-parseTypeDefinition :: String -> Parser TypeDefinition
-parseTypeDefinition name =
-  choice
-    [ parseStructDefinition name,
-      parseArrayDefinition name,
-      parseEnumDefinition name,
-      parseAliasDefinition name
-    ]
-
--------------------------------------------------------------------------------
--- Parse Struct Definition: { <fields> }
--------------------------------------------------------------------------------
-parseStructDefinition :: String -> Parser TypeDefinition
-parseStructDefinition name = do
-  _ <- matchTokenType TOpenBrace
-  fields <- parseField `sepBy` matchTokenType TComma
-  _ <- matchTokenType TCloseBrace
-  return $ StructDeclaration name (Struct fields)
-
--------------------------------------------------------------------------------
--- Parse Array Definition: [<size>: <type>]
--------------------------------------------------------------------------------
-parseArrayDefinition :: String -> Parser TypeDefinition
-parseArrayDefinition name = do
-  _ <- matchTokenType TOpenBracket
-  size <- fromIntegral <$> parseIntLiteral
-  _ <- matchTokenType TColon
-  ty <- parseType
-  _ <- matchTokenType TCloseBracket
-  return $ ArrayDeclaration name (size, ty)
-
--------------------------------------------------------------------------------
--- Parse Enum Definition: <variant1, variant2, ...>
--------------------------------------------------------------------------------
-parseEnumDefinition :: String -> Parser TypeDefinition
-parseEnumDefinition name = do
-  _ <- matchTokenType TLessThan
-  variants <- parseIdentifier `sepBy` matchTokenType TComma
-  _ <- matchTokenType TGreaterThan
-  return $ EnumDeclaration name variants
-
--------------------------------------------------------------------------------
--- Parse Alias Definition: <type>
--------------------------------------------------------------------------------
-
-parseAliasDefinition :: String -> Parser TypeDefinition
-parseAliasDefinition name = do
-  ty <- parseType
-  return $ AliasDeclaration name ty
 
 -------------------------------------------------------------------------------
 -- Return Statement: return <expr>;
@@ -245,6 +191,7 @@ parseTerm =
   choice
     [ parseParenthesis,
       parseLiteral,
+      try parseFunctionCall,
       parseVariable
     ]
 
@@ -278,6 +225,12 @@ parseVariable = do
   where
     isIdent (TIdent _) = True
     isIdent _ = False
+
+parseFunctionCall :: Parser Expression
+parseFunctionCall = do
+  name <- parseIdentifier
+  args <- between (matchTokenType TOpenParen) (matchTokenType TCloseParen) (parseExpression `sepBy` matchTokenType TComma)
+  return $ FunctionCall name args
 
 operatorTable :: [[Operator Parser Expression]]
 operatorTable =
@@ -319,8 +272,11 @@ operatorTable =
 parseType :: Parser Type
 parseType =
   choice
-    [ parsePrimitiveType,
+    [ try parsePrimitiveType,
       parsePointerType,
+      parseStructType,
+      parseArrayType,
+      parseEnumType,
       parseCustomType
     ]
 
@@ -358,6 +314,38 @@ parsePointerType = do
   mutability <- optional (matchTokenType TMut)
   ty <- parseType
   return $ PointerType (if isJust mutability then Mutable else Immutable) ty
+
+-------------------------------------------------------------------------------
+-- Parse Struct Definition: { <fields> }
+-------------------------------------------------------------------------------
+parseStructType :: Parser Type
+parseStructType = do
+  _ <- matchTokenType TOpenBrace
+  fields <- parseField `sepBy` matchTokenType TComma
+  _ <- matchTokenType TCloseBrace
+  return $ StructType (Struct fields)
+
+-------------------------------------------------------------------------------
+-- Parse Array Type: [<size>: <type>]
+-------------------------------------------------------------------------------
+parseArrayType :: Parser Type
+parseArrayType = do
+  _ <- matchTokenType TOpenBracket
+  size <- fromIntegral <$> parseIntLiteral
+  _ <- matchTokenType TColon
+  ty <- parseType
+  _ <- matchTokenType TCloseBracket
+  return $ ArrayType (Array size ty)
+
+-------------------------------------------------------------------------------
+-- Parse Enum Type: <variant1, variant2, ...>
+-------------------------------------------------------------------------------
+parseEnumType :: Parser Type
+parseEnumType = do
+  _ <- matchTokenType TLessThan
+  variants <- parseIdentifier `sepBy` matchTokenType TComma
+  _ <- matchTokenType TGreaterThan
+  return $ EnumType (EnumT variants)
 
 parseCustomType :: Parser Type
 parseCustomType = do
@@ -406,6 +394,7 @@ examplemain = do
   let testInputs =
         [ "x = 5;",
           "let x: i32 = 5;",
+          "let alexikiwi: Kiwi = 42;",
           "fn add(a: i32, b: i32) -> i32 { return a + b; }",
           "while (x < 10) { x = x + 1; }",
           "if (x == 0) { x = 1; } else { x = 0; }",

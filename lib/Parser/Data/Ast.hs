@@ -10,7 +10,7 @@ module Parser.Data.Ast
     UnaryOp (..),
     Struct (..),
     Array (..),
-    TypeDefinition (..),
+    EnumT (..),
     Mutablility (..),
     FunctionName,
     VariableName,
@@ -36,17 +36,10 @@ data Statement
   | FunctionDeclaration FunctionName [Field] Type Body -- fn <name>(<args>) -> <type> { <body> }
   | WhileLoop Expression Body -- while (<condition>) { <body> }
   | If Expression Body (Maybe Body) -- if <cond> { <then_body> } [else { <else_body> }] NOTE: 'elif <cond> { }' is actually else '{ if <cond> { <then_body> } }'
-  | TypeDeclaration !TypeDefinition -- type <name> = <typedef>
+  | TypeDeclaration String Type -- type <name> = <typedef>
   | ReturnStatement Expression -- return <expression>
   | StandaloneFunctionCall FunctionName [Expression] -- <func_name>(<args>)
   | VariableReAssignment VariableName Expression -- <name> = <expression>
-  deriving (Show, Eq)
-
-data TypeDefinition
-  = StructDeclaration String Struct -- { <fields> }
-  | ArrayDeclaration String (Int, Type) -- [<size>: <type>]
-  | EnumDeclaration String [String] -- <variant1, variant2, ...>
-  | AliasDeclaration String Type -- <type>
   deriving (Show, Eq)
 
 data Mutablility
@@ -55,12 +48,12 @@ data Mutablility
   deriving (Show, Eq)
 
 data Type
-  = PrimitiveType Primitive -- i8, u8, f32, etc.
-  | PointerType Mutablility Type -- `\*mut or *` <type> (True for mutable, False for immutable)
-  | StructType [Field] -- { <name>: <type>, ... }
-  | -- | ArrayType Int Type      -- [<size>: <type>]
-    -- | EnumType [String]       -- <variant1, variant2, ...>
-    CustomType String -- <name> (Must start with a capital letter)
+  = PrimitiveType !Primitive -- i8, u8, f32, etc.
+  | PointerType !Mutablility Type -- `\*mut or *` <type> (True for mutable, False for immutable)
+  | StructType !Struct -- { <name>: <type>, ... }
+  | ArrayType !Array -- [<size>: <type>]
+  | EnumType !EnumT -- <variant1, variant2, ...>
+  | CustomType !String -- <name> (Must start with a capital letter)
   deriving (Show, Eq)
 
 data Primitive
@@ -127,5 +120,8 @@ newtype Struct = Struct [Field] -- { <fields> }
   deriving (Show, Eq)
 
 -- Array
-data Array = Array Int Type -- [<size>: <type>]
+data Array = Array !Int !Type -- [<size>: <type>]
+  deriving (Show, Eq)
+
+newtype EnumT = EnumT [String] -- <variant1, variant2, ...>
   deriving (Show, Eq)
