@@ -56,6 +56,48 @@ encodeInstruction instr = case instr of
     ModuleI64 -> [0x7F]  -- i64.div_s
     ModuleF32 -> [0x95]  -- f32.div
     ModuleF64 -> [0xA3]  -- f64.div
+  
+  ModuleMod vt -> case vt of
+    ModuleI32 -> [0x6F]  -- i32.rem_s
+    ModuleI64 -> [0x81]  -- i64.rem_s
+    ModuleF32 -> [0x96]  -- f32.rem
+    ModuleF64 -> [0xA4]  -- f64.rem
+
+  ModuleBitAnd vt -> case vt of
+    ModuleI32 -> [0x71]  -- i32.and
+    ModuleI64 -> [0x83]  -- i64.and
+    ModuleF32 -> [0x97]  -- f32.and
+    ModuleF64 -> [0xA5]  -- f64.and
+
+  ModuleBitOr vt -> case vt of
+    ModuleI32 -> [0x72]  -- i32.or
+    ModuleI64 -> [0x84]  -- i64.or
+    ModuleF32 -> [0x98]  -- f32.or
+    ModuleF64 -> [0xA6]  -- f64.or
+  
+  ModuleBitXor vt -> case vt of
+    ModuleI32 -> [0x73]  -- i32.xor
+    ModuleI64 -> [0x85]  -- i64.xor
+    ModuleF32 -> [0x99]  -- f32.xor
+    ModuleF64 -> [0xA7]  -- f64.xor
+  
+  ModuleBitNot vt -> case vt of
+    ModuleI32 -> [0x74]  -- i32.not
+    ModuleI64 -> [0x86]  -- i64.not
+    ModuleF32 -> [0x9A]  -- f32.not
+    ModuleF64 -> [0xA8]  -- f64.not
+
+  ModuleShl vt -> case vt of
+    ModuleI32 -> [0x75]  -- i32.shl
+    ModuleI64 -> [0x87]  -- i64.shl
+    ModuleF32 -> [0x9B]  -- f32.shl
+    ModuleF64 -> [0xA9]  -- f64.shl
+  
+  ModuleShr vt -> case vt of
+    ModuleI32 -> [0x76]  -- i32.shr_s
+    ModuleI64 -> [0x88]  -- i64.shr_s
+    ModuleF32 -> [0x9C]  -- f32.shr
+    ModuleF64 -> [0xAA]  -- f64.shr
 
   ModuleLocalGet idx -> [0x20] <> encodeU32LEB128 idx
   ModuleLocalSet idx -> [0x21] <> encodeU32LEB128 idx

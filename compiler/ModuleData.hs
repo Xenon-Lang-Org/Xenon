@@ -76,6 +76,15 @@ data Instruction
     | ModuleSub ValueType
     | ModuleMul ValueType
     | ModuleDiv ValueType
+    | ModuleMod ValueType
+
+    | ModuleBitAnd ValueType
+    | ModuleBitOr ValueType
+    | ModuleBitXor ValueType
+    | ModuleBitNot ValueType
+    | ModuleShl ValueType
+    | ModuleShr ValueType
+
 
     | ModuleLocalGet Int
     | ModuleLocalSet Int

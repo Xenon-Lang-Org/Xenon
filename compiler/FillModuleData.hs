@@ -239,12 +239,19 @@ mkBinOpInstruction op vt = case op of
   Sub -> ModuleSub vt
   Mul -> ModuleMul vt
   Div -> ModuleDiv vt
+  Mod -> ModuleMod vt
   Gt  -> ModuleGt  vt
   Lt  -> ModuleLt  vt
   Eq  -> ModuleEq  vt
   Neq -> ModuleNeq vt
   Le  -> ModuleLe  vt
   Ge  -> ModuleGe  vt
+  BitAnd -> ModuleBitAnd vt
+  BitOr  -> ModuleBitOr  vt
+  BitXor -> ModuleBitXor vt
+  BitNot -> ModuleBitNot vt
+  Shl    -> ModuleShl    vt
+  Shr    -> ModuleShr    vt
   _   -> error $ "Unsupported combination: " ++ show op
 
 lookupVar :: [(String, Int)] -> String -> Maybe Int
