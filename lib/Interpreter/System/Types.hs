@@ -2,7 +2,7 @@ module Interpreter.System.Types
     (
         castExpr,
         toLiteralExpr,
-        toBool
+        toBool,
     )
 where
 
@@ -12,8 +12,8 @@ import Interpreter.Data.Environment
 
 wrap :: (Num a, Ord a) => (a, a) -> a -> a
 wrap (mn, mx) n | n >= mn && n <= mx = n
-                   | n > mx = wrap (mn, mx) (mn + (n - mx))
-                   | otherwise = wrap (mn, mx) (mx - (n + mn))
+                | n > mx = wrap (mn, mx) (mn + (n - mx - 1))
+                | otherwise = wrap (mn, mx) (mx - (n + mn + 1))
 
 castInteger :: Integer -> Primitive -> Integer
 castInteger n I8 = wrap (-128, 127) n
