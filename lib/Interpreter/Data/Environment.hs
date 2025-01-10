@@ -2,6 +2,7 @@ module Interpreter.Data.Environment
     (
         Env(..),
         EnvVar(..),
+        Scope,
         env,
         setGlobal,
         setLocal,
@@ -24,13 +25,14 @@ import Utils.Data.Result
 data EnvVar = EVariable String Type Expression
             | EFunction String [Field] Type Body
             | EType String TypeDefinition
-            deriving (Show)
+            deriving (Show, Eq)
 
 type Scope = [EnvVar]
 
 data Env = Env { global     :: Scope
                , local      :: Scope
-               , isGlobal   :: Bool}
+               , isGlobal   :: Bool
+               } deriving (Eq)
 
 instance Show Env where
     show (Env g l ig) = 
@@ -72,16 +74,6 @@ varName (EVariable name _ _) = name
 varName (EFunction name _ _ _) = name
 varName (EType name _) = name
 
-assignScopeVar :: Scope -> String -> Expression -> Result String Scope
-assignScopeVar [] n _ = Err $ n ++ " is undefined"
-assignScopeVar s n v = assign s []
-    where
-        assign [] _ = Err $ n ++ " is undefined"
-        assign ((EVariable vn vt vv):xs) h
-            | vn == n = Ok (h ++ [EVariable vn vt v] ++ xs)
-            | otherwise = assign xs (h ++ [EVariable vn vt vv])
-        assign (x:xs) h = assign xs (h ++ [x])
-
 fromScope :: Scope -> String -> Result String EnvVar
 fromScope [] name = Err $ name ++ " is undefined" 
 fromScope (x:xs) name | varName x == name = Ok x
@@ -103,6 +95,16 @@ pushVariable e (VariableDeclaration n t (Just v)) = case fromEnv e n of
 pushVariable _ (VariableDeclaration n _ Nothing) =
     Err $ "Variable " ++ n ++ " must have a value to be added to env"
 pushVariable _ v = Err $ "Bad variable type (" ++ show v ++ ")"
+
+assignScopeVar :: Scope -> String -> Expression -> Result String Scope
+assignScopeVar [] n _ = Err $ n ++ " is undefined"
+assignScopeVar s n v = assign s []
+    where
+        assign [] _ = Err $ n ++ " is undefined"
+        assign ((EVariable vn vt vv):xs) h
+            | vn == n = Ok (h ++ [EVariable vn vt v] ++ xs)
+            | otherwise = assign xs (h ++ [EVariable vn vt vv])
+        assign (x:xs) h = assign xs (h ++ [x])
 
 assignVar :: Env -> String -> Expression -> Result String Env
 assignVar e n v = case assignScopeVar (local e) n v of
