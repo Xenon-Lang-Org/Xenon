@@ -91,6 +91,7 @@ test-suite test
       ExampleSpec
       LexerQuickCheckSpec
       LexerSpec
+      ParserSpec
       Paths_xenon
   autogen-modules:
       Paths_xenon

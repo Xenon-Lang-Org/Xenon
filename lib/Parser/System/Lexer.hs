@@ -244,20 +244,20 @@ pNor = symbol "~" TNor
 pIntLit :: Lexer Token
 pIntLit = lexeme $ do
   pos <- MP.getSourcePos
-  num <- L.signed sc L.decimal
+  num <- L.decimal
   return $ Token pos (TIntLit num)
 
 pFloatLit :: Lexer Token
 pFloatLit = lexeme $ do
   pos <- MP.getSourcePos
-  f <- L.signed sc L.float
+  f <- L.float
   return $ Token pos (TFloatLit f)
 
 -- Identifiers (must not match reserved keywords)
 pIdent :: Lexer Token
 pIdent = lexeme $ do
   pos <- MP.getSourcePos
-  name <- (:) <$> C.letterChar <*> MP.many (C.alphaNumChar MP.<|> C.char '_')
+  name <- (:) <$> (C.letterChar MP.<|> C.char '_') <*> MP.many (C.alphaNumChar MP.<|> C.char '_')
   return $ Token pos (TIdent name)
 
 pEOF :: Lexer Token
@@ -303,8 +303,8 @@ tokenParser =
       pAddressOf,
       pIdent,
       MP.try pFloatLit, -- try float before int
-      pPlus,
       pMinus,
+      pPlus,
       pMult,
       pDiv,
       pMod,

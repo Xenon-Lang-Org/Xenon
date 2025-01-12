@@ -208,7 +208,7 @@ parseLiteral :: Parser Expression
 parseLiteral = do
   tok <- matchToken isLiteral
   case tokenType tok of
-    TIntLit n -> return $ ELiteral (IntLiteral $ fromIntegral n)
+    TIntLit n -> return $ ELiteral (IntLiteral n)
     TFloatLit f -> return $ ELiteral (FloatLiteral f)
     _ -> fail "Unexpected token, expected literal"
   where
@@ -238,6 +238,7 @@ operatorTable =
       Prefix (UnaryOp Dereference <$ matchTokenType TDereference),
       Prefix (UnaryOp AddressOf <$ matchTokenType TAddressOf),
       Prefix (UnaryOp BitNot <$ matchTokenType TNor)
+      -- Prefix (UnaryOp Negative <$ matchTokenType TMinus) // TODO implement negative operator
     ],
     [ InfixL (BinaryOp Mul <$ matchTokenType TMult),
       InfixL (BinaryOp Div <$ matchTokenType TDiv),
@@ -280,20 +281,26 @@ parseType =
       parseCustomType
     ]
 
+parseMutablility :: Parser Mutablility
+parseMutablility = do
+  mut <- optional (matchTokenType TMut)
+  return $ if isJust mut then Mutable else Immutable
+
 parsePrimitiveType :: Parser Type
 parsePrimitiveType = do
+  mutability <- parseMutablility
   tok <- matchToken isPrimitive
   case tokenType tok of
-    TIdent "i8" -> return $ PrimitiveType I8
-    TIdent "i16" -> return $ PrimitiveType I16
-    TIdent "i32" -> return $ PrimitiveType I32
-    TIdent "i64" -> return $ PrimitiveType I64
-    TIdent "u8" -> return $ PrimitiveType U8
-    TIdent "u16" -> return $ PrimitiveType U16
-    TIdent "u32" -> return $ PrimitiveType U32
-    TIdent "u64" -> return $ PrimitiveType U64
-    TIdent "f32" -> return $ PrimitiveType F32
-    TIdent "f64" -> return $ PrimitiveType F64
+    TIdent "i8" -> return $ PrimitiveType mutability I8
+    TIdent "i16" -> return $ PrimitiveType mutability I16
+    TIdent "i32" -> return $ PrimitiveType mutability I32
+    TIdent "i64" -> return $ PrimitiveType mutability I64
+    TIdent "u8" -> return $ PrimitiveType mutability U8
+    TIdent "u16" -> return $ PrimitiveType mutability U16
+    TIdent "u32" -> return $ PrimitiveType mutability U32
+    TIdent "u64" -> return $ PrimitiveType mutability U64
+    TIdent "f32" -> return $ PrimitiveType mutability F32
+    TIdent "f64" -> return $ PrimitiveType mutability F64
     _ -> fail "Invalid type"
   where
     isPrimitive (TIdent "i8") = True
@@ -311,47 +318,51 @@ parsePrimitiveType = do
 parsePointerType :: Parser Type
 parsePointerType = do
   _ <- matchTokenType TMult
-  mutability <- optional (matchTokenType TMut)
+  mutability <- parseMutablility
   ty <- parseType
-  return $ PointerType (if isJust mutability then Mutable else Immutable) ty
+  return $ PointerType mutability ty
 
 -------------------------------------------------------------------------------
 -- Parse Struct Definition: { <fields> }
 -------------------------------------------------------------------------------
 parseStructType :: Parser Type
 parseStructType = do
+  mutability <- parseMutablility
   _ <- matchTokenType TOpenBrace
   fields <- parseField `sepBy` matchTokenType TComma
   _ <- matchTokenType TCloseBrace
-  return $ StructType (Struct fields)
+  return $ StructType mutability (Struct fields)
 
 -------------------------------------------------------------------------------
 -- Parse Array Type: [<size>: <type>]
 -------------------------------------------------------------------------------
 parseArrayType :: Parser Type
 parseArrayType = do
+  mutability <- parseMutablility
   _ <- matchTokenType TOpenBracket
   size <- fromIntegral <$> parseIntLiteral
   _ <- matchTokenType TColon
   ty <- parseType
   _ <- matchTokenType TCloseBracket
-  return $ ArrayType (Array size ty)
+  return $ ArrayType mutability (Array size ty)
 
 -------------------------------------------------------------------------------
 -- Parse Enum Type: <variant1, variant2, ...>
 -------------------------------------------------------------------------------
 parseEnumType :: Parser Type
 parseEnumType = do
+  mutability <- parseMutablility
   _ <- matchTokenType TLessThan
   variants <- parseIdentifier `sepBy` matchTokenType TComma
   _ <- matchTokenType TGreaterThan
-  return $ EnumType (EnumT variants)
+  return $ EnumType mutability (EnumT variants)
 
 parseCustomType :: Parser Type
 parseCustomType = do
+  mutability <- parseMutablility
   tok <- matchToken isCustom
   case tokenType tok of
-    TIdent name -> return $ CustomType name
+    TIdent name -> return $ CustomType mutability name
     _ -> fail "Custom type names must start with a capital letter"
   where
     isCustom (TIdent (c : _)) = isUpper c

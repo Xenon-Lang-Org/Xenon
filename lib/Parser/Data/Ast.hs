@@ -18,10 +18,8 @@ module Parser.Data.Ast
   )
 where
 
-import Data.Word (Word64)
-
 newtype Program = Program [Statement]
-  deriving (Show)
+  deriving (Show, Eq)
 
 type VariableName = String
 
@@ -48,12 +46,12 @@ data Mutablility
   deriving (Show, Eq)
 
 data Type
-  = PrimitiveType !Primitive -- i8, u8, f32, etc.
-  | PointerType !Mutablility Type -- `\*mut or *` <type> (True for mutable, False for immutable)
-  | StructType !Struct -- { <name>: <type>, ... }
-  | ArrayType !Array -- [<size>: <type>]
-  | EnumType !EnumT -- <variant1, variant2, ...>
-  | CustomType !String -- <name> (Must start with a capital letter)
+  = PrimitiveType !Mutablility !Primitive -- i8, u8, f32, etc.
+  | PointerType !Mutablility Type -- `\*mut or *` <type>
+  | StructType !Mutablility !Struct -- { <name>: <type>, ... }
+  | ArrayType !Mutablility !Array -- [<size>: <type>]
+  | EnumType !Mutablility !EnumT -- <variant1, variant2, ...>
+  | CustomType !Mutablility !String -- <name> (Must start with a capital letter)
   deriving (Show, Eq)
 
 data Primitive
@@ -80,8 +78,8 @@ data Expression
 
 data Literal
   = -- | StringLiteral String
-    IntLiteral Word64
-  | FloatLiteral Double
+    IntLiteral !Integer
+  | FloatLiteral !Double
   deriving
     ( Show,
       Eq
@@ -113,6 +111,7 @@ data UnaryOp
   | AddressOf -- ?
   | Negate -- !
   | BitNot -- ~
+  | Negative -- -
   deriving (Show, Eq)
 
 -- Struct
