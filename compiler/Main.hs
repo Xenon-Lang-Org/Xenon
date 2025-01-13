@@ -1,5 +1,4 @@
 import Parser.Data.Ast
-import ModuleData
 import WriteWASM
 import FillModuleData
 import WriteWAT

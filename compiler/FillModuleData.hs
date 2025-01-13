@@ -75,7 +75,7 @@ collectGlobals stmts =
 initializeGlobal :: ValueType -> Maybe Expression -> [Instruction]
 initializeGlobal vt = \case
   Just (ELiteral (IntLiteral val))   -> [mkConst vt (fromIntegral val)]
-  Just (ELiteral (FloatLiteral fval)) -> [mkConst vt (realToFrac fval)]
+  Just (ELiteral (FloatLiteral fval)) -> [mkConst vt fval]
   _ -> [mkConst vt 0]
 
 mkConst :: ValueType -> Double -> Instruction
@@ -164,9 +164,6 @@ toInstruction _ _ _ (VariableDeclaration _ _ _) = []
 -- FunctionDeclaration
 toInstruction _ _ _ (FunctionDeclaration _ _ _ _) = []
 
-toInstruction _ _ _ stmt =
-  error $ "Unhandled statement: " ++ show stmt
-
 toInstructionFromExpr
     :: [(String, Int)]
     -> [(String, ValueType, Int)]
@@ -188,10 +185,11 @@ toInstructionFromExpr locMap gMap funcMap = \case
   ELiteral (FloatLiteral f) -> [ModuleConstF32 (realToFrac f)]
 
   -- UnaryOp
-  UnaryOp Negate innerExpr ->
-    let innerInstrs = toInstructionFromExpr locMap gMap funcMap innerExpr
-        vt          = detectValueType innerExpr locMap gMap
-    in innerInstrs ++ [ModuleEqz vt]
+  UnaryOp op expr ->
+    let exprInstrs = toInstructionFromExpr locMap gMap funcMap expr
+        vt         = detectValueType expr locMap gMap
+        unaryInstr = mkUnaryOpInstruction op vt
+    in exprInstrs ++ [unaryInstr]
 
   -- BinaryOp
   BinaryOp op left right ->
@@ -240,7 +238,13 @@ mkBinOpInstruction op vt = case op of
   BitXor -> ModuleBitXor vt
   Shl    -> ModuleShl    vt
   Shr    -> ModuleShr    vt
-  _ -> error $ "Unsupported binop for now: " ++ show op
+  _ -> error $ "Unsupported binop: " ++ show op
+
+mkUnaryOpInstruction :: UnaryOp -> ValueType -> Instruction
+mkUnaryOpInstruction op vt = case op of
+  Negate -> ModuleEqz vt
+  BitNot -> ModuleBitNot vt
+  _ -> error $ "Unsupported unary op: " ++ show op
 
 lookupVar :: [(String, Int)] -> String -> Maybe Int
 lookupVar locMap name = lookup name locMap
