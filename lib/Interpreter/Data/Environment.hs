@@ -106,12 +106,29 @@ assignScopeVar s n v = assign s []
             | otherwise = assign xs (h ++ [EVariable vn vt vv])
         assign (x:xs) h = assign xs (h ++ [x])
 
+validateAssign :: Env -> String -> Maybe String
+validateAssign e n = case fromEnv e n of
+    Err m -> Just m
+    Ok (EVariable _ t _) | isMutable t -> Nothing
+    Ok EVariable {} -> Just $ "Variable " ++ n ++ " is constant"
+    Ok _ -> Just $ n ++ " is not assignable"
+    where
+        isMutable (PrimitiveType Mutable _) = True
+        isMutable (PointerType Mutable _) = True
+        isMutable (StructType Mutable _) = True
+        isMutable (ArrayType Mutable _) = True
+        isMutable (EnumType Mutable _) = True
+        isMutable (CustomType Mutable _) = True
+        isMutable _ = False
+
 assignVar :: Env -> String -> Expression -> Result String Env
-assignVar e n v = case assignScopeVar (local e) n v of
-    Ok s -> Ok $ setLocalScope e s
-    _ -> case assignScopeVar (global e) n v of
-        Ok s -> Ok $ setGlobalScope e s
-        Err msg -> Err msg
+assignVar e n v = case validateAssign e n of
+    Just s -> Err s
+    Nothing -> case assignScopeVar (local e) n v of
+        Ok s -> Ok $ setLocalScope e s
+        _ -> case assignScopeVar (global e) n v of
+            Ok s -> Ok $ setGlobalScope e s
+            Err msg -> Err msg
 
 pushFunction :: Env -> Statement -> Result String Env
 pushFunction e (FunctionDeclaration n a t b) = case fromEnv e n of
