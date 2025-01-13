@@ -89,6 +89,8 @@ toNumBits (ELiteral (IntLiteral n)) = Ok $ fromIntegral n
 toNumBits _ = Err "Invalid binary operator argument"
 
 floatEval :: BinOp -> Expression -> Expression -> Result String Expression
+floatEval Div _ (ELiteral (IntLiteral 0)) = Err "Division by zero" 
+floatEval Div _ (ELiteral (FloatLiteral 0)) = Err "Division by zero" 
 floatEval op l r = case both toNumFloat (l, r) of
     Ok (l', r') -> Ok $ ELiteral $ FloatLiteral $ evalOpFloat op l' r'
     Err msg -> Err msg
