@@ -6,7 +6,6 @@ import Parser.Data.Ast
 import ModuleData
 import Data.Maybe (fromMaybe)
 
--- Collect type definitions from function declarations
 collectTypes :: [Statement] -> [TypeSection]
 collectTypes stmts =
     [ TypeSection (FunctionType (map (toValueType . snd) params) [toValueType ret])
@@ -31,7 +30,6 @@ collectFunctions stmts globalMap =
     funDecls    = [fd | fd@(FunctionDeclaration _ _ _ _) <- stmts]
     functionMap = buildFunctionMap stmts
 
--- Build function map: (functionName -> functionIndex)
 buildFunctionMap :: [Statement] -> [(String, Int)]
 buildFunctionMap stmts =
     zip functionNames [0..]
@@ -91,9 +89,9 @@ collectLocalVars stmts = concatMap (\stmt -> case stmt of
     _ -> []
   ) stmts
 
--- Build local variable map: (varName -> localIndex)
-buildLocalVariableMap :: [(String, Type)] -> [(String, Int)]
-buildLocalVariableMap params = zip (map fst params) [0..]
+buildLocalVariableMap :: [(String, Type)] -> [(String, (ValueType, Int))]
+buildLocalVariableMap params =
+    zipWith (\(name, ty) idx -> (name, (toValueType ty, idx))) params [0..]
 
 toValueType :: Type -> ValueType
 toValueType (PrimitiveType _ I32) = ModuleI32
@@ -103,9 +101,9 @@ toValueType (PrimitiveType _ F64) = ModuleF64
 toValueType _ = error "Unsupported type"
 
 toInstruction
-    :: [(String, Int)]             -- localVarMap
-    -> [(String, ValueType, Int)]  -- globalMap
-    -> [(String, Int)]             -- functionMap
+    :: [(String, (ValueType, Int))]  -- localVarMap
+    -> [(String, ValueType, Int)]    -- globalMap
+    -> [(String, Int)]               -- functionMap
     -> Statement
     -> [Instruction]
 
@@ -140,11 +138,10 @@ toInstruction locMap gMap funcMap (If cond thenBody maybeElseBody) =
 
 -- TypeDeclaration
 toInstruction _ _ _ (TypeDeclaration _ _) =
-  []  -- Type declarations generate no runtime instructions
+  []
 
 -- StandaloneFunctionCall
 toInstruction locMap gMap funcMap (StandaloneFunctionCall funcName args) =
-    -- Evaluate each argument, then call the function
     concatMap (toInstructionFromExpr locMap gMap funcMap) args
     ++ [ModuleCall (lookupFunc funcMap funcName)]
 
@@ -152,20 +149,20 @@ toInstruction locMap gMap funcMap (StandaloneFunctionCall funcName args) =
 toInstruction locMap gMap _ (VariableReAssignment name expr) =
   let rhsInstrs = toInstructionFromExpr locMap gMap [] expr
   in case lookupVar locMap name of
-       Just localIdx -> rhsInstrs ++ [ModuleLocalSet localIdx]
+       Just (_, localIdx) -> rhsInstrs ++ [ModuleLocalSet localIdx]
        Nothing ->
          case lookupGlobal gMap name of
            Just (globalIdx, _) -> rhsInstrs ++ [ModuleGlobalSet globalIdx]
            Nothing -> error $ "Unknown variable for assignment: " ++ name
 
 -- VariableDeclaration in top-level statements
-toInstruction _ _ _ (VariableDeclaration _ _ _) = []
+toInstruction _ _ _ (VariableDeclaration {}) = []
 
 -- FunctionDeclaration
-toInstruction _ _ _ (FunctionDeclaration _ _ _ _) = []
+toInstruction _ _ _ (FunctionDeclaration {}) = []
 
 toInstructionFromExpr
-    :: [(String, Int)]
+    :: [(String, (ValueType, Int))]
     -> [(String, ValueType, Int)]
     -> [(String, Int)]
     -> Expression
@@ -175,7 +172,7 @@ toInstructionFromExpr locMap gMap funcMap = \case
   -- Variable
   Variable varName ->
     case lookupVar locMap varName of
-      Just localIdx  -> [ModuleLocalGet localIdx]
+      Just (_, localIdx)  -> [ModuleLocalGet localIdx]
       Nothing        -> case lookupGlobal gMap varName of
           Just (globalIdx, _) -> [ModuleGlobalGet globalIdx]
           Nothing             -> error $ "Unknown variable: " ++ varName
@@ -208,17 +205,25 @@ toInstructionFromExpr locMap gMap funcMap = \case
   Parenthesis expr ->
     toInstructionFromExpr locMap gMap funcMap expr
 
-detectValueType :: Expression -> [(String, Int)] -> [(String, ValueType, Int)] -> ValueType
-detectValueType expr locMap gMap = case expr of
-  Variable varName ->
-    case lookupVar locMap varName of
-      Just _     -> ModuleI32  -- assume locals are i32
-      Nothing    -> case lookupGlobal gMap varName of
-        Just (_, vt) -> vt
-        Nothing      -> error $ "Unknown variable: " ++ varName
-  ELiteral (IntLiteral _)   -> ModuleI32
-  ELiteral (FloatLiteral _) -> ModuleF32
-  _ -> ModuleI32
+detectValueType
+    :: Expression
+    -> [(String, (ValueType, Int))]
+    -> [(String, ValueType, Int)]
+    -> ValueType
+detectValueType expr locMap globalMap =
+  case expr of
+    Variable varName ->
+      case lookupVar locMap varName of
+        Just (vt, _) -> vt
+        Nothing -> case lookupGlobal globalMap varName of
+          Just (_, vt) -> vt
+          Nothing      -> error $ "Unknown variable: " ++ varName
+
+    ELiteral (IntLiteral _)   -> ModuleI32
+
+    ELiteral (FloatLiteral _) -> ModuleF32
+
+    _ -> error "Unsupported expression"
 
 mkBinOpInstruction :: BinOp -> ValueType -> Instruction
 mkBinOpInstruction op vt = case op of
@@ -247,7 +252,7 @@ mkUnaryOpInstruction op vt = case op of
   BitNot -> ModuleBitNot vt
   _ -> error $ "Unsupported unary op: " ++ show op
 
-lookupVar :: [(String, Int)] -> String -> Maybe Int
+lookupVar :: [(String, (ValueType, Int))] -> String -> Maybe (ValueType, Int)
 lookupVar locMap name = lookup name locMap
 
 lookupGlobal :: [(String, ValueType, Int)] -> String -> Maybe (Int, ValueType)
@@ -282,4 +287,3 @@ buildGlobalMap stmts =
       [ (name, toValueType typ)
       | VariableDeclaration name typ _ <- stmts
       ]
-

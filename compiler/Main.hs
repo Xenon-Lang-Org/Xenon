@@ -3,6 +3,27 @@ import WriteWASM
 import FillModuleData
 import WriteWAT
 
+-- input to test Double
+testF64AST :: Program
+testF64AST = Program [
+    FunctionDeclaration "addDouble" [("a", PrimitiveType Immutable F64), ("b", PrimitiveType Immutable F64)] (PrimitiveType Immutable F64)
+        [ReturnStatement $ BinaryOp Add (Variable "a") (Variable "b")]
+    ]
+
+-- input to test I64
+testI64AST :: Program
+testI64AST = Program [
+    FunctionDeclaration "add64" [("a", PrimitiveType Immutable I64), ("b", PrimitiveType Immutable I64)] (PrimitiveType Immutable I64)
+        [ReturnStatement $ BinaryOp Add (Variable "a") (Variable "b")]
+    ]
+
+-- input to test float
+testFloatAST :: Program
+testFloatAST = Program [
+    FunctionDeclaration "addfloat" [("a", PrimitiveType Immutable F32), ("b", PrimitiveType Immutable F32)] (PrimitiveType Immutable F32)
+        [ReturnStatement $ BinaryOp Add (Variable "a") (Variable "b")]
+    ]
+
 -- input to test if compilation
 testIfAST :: Program
 testIfAST = Program [FunctionDeclaration "doif" [("a",PrimitiveType Immutable I32)] (PrimitiveType Immutable I32) [VariableDeclaration "x" (PrimitiveType Mutable I32) (Just (ELiteral (IntLiteral 0))),If (BinaryOp Eq (Variable "a") (ELiteral (IntLiteral 0))) [VariableReAssignment "x" (ELiteral (IntLiteral 1))] (Just [VariableReAssignment "x" (ELiteral (IntLiteral 0))]),ReturnStatement (Variable "x")]]
@@ -87,4 +108,4 @@ main = do
     printModule filledModule
     writeWasmModule "result.wasm" filledModule
   where
-    filledModule = fillWASMModuleFromAST testIfAST
+    filledModule = fillWASMModuleFromAST testF64AST
