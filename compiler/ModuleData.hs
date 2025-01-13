@@ -121,5 +121,5 @@ data ValueType
     | ModuleF64
     deriving (Show, Eq)
 
-data Mutability = Mutable | Immutable
+data Mutability = ModuleMutable | ModuleImmutable
     deriving (Show, Eq)

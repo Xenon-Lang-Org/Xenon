@@ -245,8 +245,8 @@ encodeGlobalSection globs =
         encodeGlobal (valType, mut, initInstrs) =
           [ encodeValueType valType
           , case mut of
-              Mutable   -> 0x01
-              Immutable -> 0x00
+              ModuleMutable   -> 0x01
+              ModuleImmutable -> 0x00
           ]
           <> concatMap encodeInstruction initInstrs
           <> [0x0B] -- end

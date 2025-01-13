@@ -25,6 +25,7 @@ library
   exposed-modules:
       Parser.Data.Ast
       Parser.Data.ParserS
+      Parser.System.Lexer
       Parser.System.Parser
       Utils.Control.Convert
       Utils.Data.Result
@@ -96,6 +97,9 @@ test-suite test
   main-is: Main.hs
   other-modules:
       ExampleSpec
+      LexerQuickCheckSpec
+      LexerSpec
+      ParserSpec
       Paths_xenon
   autogen-modules:
       Paths_xenon
@@ -104,14 +108,14 @@ test-suite test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
-    , base >=4.7 && <5
+    , base
     , binary
     , bytestring
     , containers
     , hspec
     , hspec-discover
     , megaparsec
-    , parser-combinators >=1.3.0
+    , parser-combinators
     , text
     , xenon
   default-language: Haskell2010

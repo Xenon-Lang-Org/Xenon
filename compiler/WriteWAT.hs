@@ -41,8 +41,8 @@ showExportSection (ExportSection (Export name kind)) = do
 showGlobal :: (ValueType, Mutability, [Instruction]) -> IO ()
 showGlobal (valType, mut, instrs) = do
     let mutStr = case mut of
-            Mutable   -> "mut "
-            Immutable -> "const "
+            ModuleMutable   -> "mut "
+            ModuleImmutable -> "const "
     putStrLn $ "  (global (" ++ mutStr ++ showValueType valType ++ ")"
     mapM_ showInstruction instrs
     putStrLn "  )"
