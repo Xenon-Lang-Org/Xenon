@@ -69,9 +69,9 @@ data Primitive
 
 data Expression
   = Variable String -- variable name
-  | ELiteral Literal -- constant values
-  | BinaryOp BinOp Expression Expression -- <expr> <op> <expr>
-  | UnaryOp UnaryOp Expression -- <op> <expr>
+  | ELiteral !Literal -- constant values
+  | BinaryOp !BinOp Expression Expression -- <expr> <op> <expr>
+  | UnaryOp !UnaryOp Expression -- <op> <expr>
   | Parenthesis Expression -- (<expr>)
   | FunctionCall FunctionName [Expression] -- <func_name>(<args>)
   deriving (Show, Eq)
@@ -81,9 +81,7 @@ data Literal
     IntLiteral !Integer
   | FloatLiteral !Double
   deriving
-    ( Show,
-      Eq
-    )
+    (Show, Eq)
 
 data BinOp
   = Add -- +
