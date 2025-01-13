@@ -101,6 +101,8 @@ data Instruction
     | ModuleLe ValueType
     | ModuleGe ValueType
     | ModuleIf (Maybe ValueType) [Instruction] [Instruction]
+    | ModuleAnd ValueType
+    | ModuleOr ValueType
 
     | ModuleEqz ValueType
 

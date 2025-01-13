@@ -97,9 +97,9 @@ buildLocalVariableMap params = zip (map fst params) [0..]
 
 toValueType :: Type -> ValueType
 toValueType (PrimitiveType _ I32) = ModuleI32
-toValueType (PrimitiveType _ I64) = error "I64 WIP"
-toValueType (PrimitiveType _ F32) = error "F32 WIP"
-toValueType (PrimitiveType _ F64) = error "F64 WIP"
+toValueType (PrimitiveType _ I64) = ModuleI64
+toValueType (PrimitiveType _ F32) = ModuleF32
+toValueType (PrimitiveType _ F64) = ModuleF64
 toValueType _ = error "Unsupported type"
 
 toInstruction
@@ -238,7 +238,8 @@ mkBinOpInstruction op vt = case op of
   BitXor -> ModuleBitXor vt
   Shl    -> ModuleShl    vt
   Shr    -> ModuleShr    vt
-  _ -> error $ "Unsupported binop: " ++ show op
+  And    -> ModuleAnd    vt
+  Or     -> ModuleOr     vt
 
 mkUnaryOpInstruction :: UnaryOp -> ValueType -> Instruction
 mkUnaryOpInstruction op vt = case op of

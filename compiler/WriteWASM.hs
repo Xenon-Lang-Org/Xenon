@@ -147,6 +147,18 @@ encodeInstruction instr = case instr of
   ModuleEqz ModuleF32 -> [0x5A]  -- f32.eqz
   ModuleEqz ModuleF64 -> [0x60]  -- f64.eqz
 
+  ModuleAnd vt -> case vt of
+    ModuleI32 -> [0x71]  -- i32.and
+    ModuleI64 -> [0x83]  -- i64.and
+    ModuleF32 -> [0x97]  -- f32.and
+    ModuleF64 -> [0xA5]  -- f64.and
+  
+  ModuleOr vt -> case vt of
+    ModuleI32 -> [0x72]  -- i32.or
+    ModuleI64 -> [0x84]  -- i64.or
+    ModuleF32 -> [0x98]  -- f32.or
+    ModuleF64 -> [0xA6]  -- f64.or
+
   ModuleIf maybeResType thenInstrs elseInstrs ->
     let blockTypeByte = case maybeResType of
           Nothing   -> 0x40               -- empty block type

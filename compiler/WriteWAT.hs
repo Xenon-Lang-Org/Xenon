@@ -86,6 +86,8 @@ showInstruction (ModuleBitXor vt) = putStrLn $ "    " ++ showValueType vt ++ ".x
 showInstruction (ModuleBitNot vt) = putStrLn $ "    " ++ showValueType vt ++ ".not"
 showInstruction (ModuleShl vt) = putStrLn $ "    " ++ showValueType vt ++ ".shl"
 showInstruction (ModuleShr vt) = putStrLn $ "    " ++ showValueType vt ++ ".shr_s"
+showInstruction (ModuleAnd vt) = putStrLn $ "    " ++ showValueType vt ++ ".and"
+showInstruction (ModuleOr vt) = putStrLn $ "    " ++ showValueType vt ++ ".or"
 showInstruction (ModuleIf _ thenInstrs elseInstrs) = do
     putStrLn "    (if"
     putStrLn "      (then"
