@@ -94,7 +94,7 @@ spec = do
 runParserTest :: String -> Either String Program
 runParserTest input = case runLexer input of
   Left err -> Left $ "Lexer error: " ++ errorBundlePretty err
-  Right tokens -> case parse parseProgram "test" (Lexer.TokenStream tokens) of
+  Right tokenss -> case parse parseProgram "test" (Lexer.TokenStream tokenss input) of
     Left err -> Left $ "Parser error: " ++ errorBundlePretty err
     Right result -> Right result
 
