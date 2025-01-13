@@ -9,23 +9,24 @@ where
 import Utils.Data.Result
 import Parser.Data.Ast
 import Interpreter.Data.Environment
-import Data.Ord (clamp)
+
+wrapSigned :: Integer -> Integer -> Integer
+wrapSigned n s = (n `mod` s) - (if n `mod` s >= (s `div` 2) then s else 0)
 
 castInteger :: Primitive -> Integer -> Integer
-castInteger I8 = clamp (-128, 127)
-castInteger I16 = clamp (-32768, 32767)
-castInteger I32 = clamp (-2147483648, 2147483647)
-castInteger I64 = clamp (-9223372036854775808, 9223372036854775807)
-castInteger U8 = clamp (0, 255)
-castInteger U16 = clamp (0, 65535)
-castInteger U32 = clamp (0, 4294967295)
-castInteger U64 = clamp (0, 18446744073709551615) 
-castInteger _ = id
+castInteger I8 n = n `wrapSigned` 256
+castInteger I16 n = n `wrapSigned` 65536
+castInteger I32 n = n `wrapSigned` 4294967296
+castInteger I64 n = n `wrapSigned` 18446744073709551616
+castInteger U8 n = n `mod` 256
+castInteger U16 n = n `mod` 65536
+castInteger U32 n = n `mod` 4294967296
+castInteger U64 n = n `mod` 18446744073709551616
+castInteger _ n = n
 
 castDouble :: Primitive -> Double -> Double
-castDouble F32 = clamp (-3.4028235e38, 3.4028235e38)
-castDouble F64 = clamp (-1.7976931348623157e308, 1.7976931348623157e308)
-castDouble _ = id
+castDouble F32 n = realToFrac (realToFrac n :: Float)
+castDouble _ n = n
 
 isFloat :: Primitive -> Bool
 isFloat t = t `elem` [F32, F64]

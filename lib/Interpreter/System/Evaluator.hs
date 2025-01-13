@@ -18,7 +18,6 @@ import Data.Maybe (fromMaybe)
 type Operands = (Expression, Expression)
 type Eval = (Env, Expression)
 type MEval = (Env, Maybe Expression)
-type EAcc = (Env -> Expression -> Result String Eval)
 
 -- Expression
 
