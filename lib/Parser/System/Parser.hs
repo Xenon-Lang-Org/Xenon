@@ -421,7 +421,7 @@ examplemain = do
           "let alexikiwi: Kiwi = 42;",
           "fn add(a: i32, b: i32) -> i32 { return a + b; }",
           "while (x < 10) { x = x + 1; }",
-          "if (x == 0) { x = 1; } else { x = 0; }",
+          "fn doif(a: i32) -> i32 { let x : mut i32 = 0; if (a == 0) { x = 1; } else { x = 0; } return x;}",
           "type Point = { x: i32, y: i32 };",
           "type IntArray = [10: i32];",
           "type Color = <Red, Green, Blue>;",

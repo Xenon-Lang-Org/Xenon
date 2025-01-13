@@ -3,6 +3,10 @@ import WriteWASM
 import FillModuleData
 import WriteWAT
 
+-- input to test if compilation
+testIfAST :: Program
+testIfAST = Program [FunctionDeclaration "doif" [("a",PrimitiveType Immutable I32)] (PrimitiveType Immutable I32) [VariableDeclaration "x" (PrimitiveType Mutable I32) (Just (ELiteral (IntLiteral 0))),If (BinaryOp Eq (Variable "a") (ELiteral (IntLiteral 0))) [VariableReAssignment "x" (ELiteral (IntLiteral 1))] (Just [VariableReAssignment "x" (ELiteral (IntLiteral 0))]),ReturnStatement (Variable "x")]]
+
 -- input to test function call compilation
 testFunctionCallAST :: Program
 testFunctionCallAST = Program [
@@ -83,4 +87,4 @@ main = do
     printModule filledModule
     writeWasmModule "result.wasm" filledModule
   where
-    filledModule = fillWASMModuleFromAST testFunctionCallAST
+    filledModule = fillWASMModuleFromAST testIfAST
