@@ -223,6 +223,8 @@ detectValueType expr locMap globalMap =
 
     ELiteral (FloatLiteral _) -> ModuleF32
 
+    BinaryOp _ left _ -> detectValueType left locMap globalMap
+
     _ -> error "Unsupported expression"
 
 mkBinOpInstruction :: BinOp -> ValueType -> Instruction
