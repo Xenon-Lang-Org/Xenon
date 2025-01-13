@@ -2,7 +2,7 @@ module Interpreter.System.Types
     (
         castExpr,
         toLiteralExpr,
-        toBool,
+        toBool
     )
 where
 
@@ -41,6 +41,9 @@ castLiteral (FloatLiteral n) t = if isFloat t
 
 castExpr :: Env -> Expression -> Type -> Result String Expression
 castExpr _ (ELiteral l) (PrimitiveType _ t) = Ok $ ELiteral $ castLiteral l t
+castExpr e ex (CustomType mt n) = case deduceType e (CustomType mt n) of
+    Ok t' -> castExpr e ex t'
+    Err m -> Err m
 castExpr _ _ t = Err $ "Failed to cast expression to " ++ show t
 
 toLiteralExpr :: Type -> Expression -> Result String Literal
@@ -51,3 +54,10 @@ toBool :: Expression -> Bool
 toBool (ELiteral (IntLiteral 0)) = False
 toBool (ELiteral (FloatLiteral 0)) = False
 toBool _ = True
+
+deduceType :: Env -> Type -> Result String Type
+deduceType e (CustomType _ n) = case fromEnv e n of
+    Ok (EType _ t) -> deduceType e t
+    Ok _ -> Err $ n ++ " is not a type"
+    Err m -> Err m
+deduceType _ t = Ok t

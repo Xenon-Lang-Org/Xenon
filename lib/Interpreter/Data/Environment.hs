@@ -35,7 +35,7 @@ data Env = Env { global     :: Scope
                } deriving (Eq)
 
 instance Show Env where
-    show (Env g l ig) = 
+    show (Env g l ig) =
         "\n-- " ++ getName ig ++ " Environment --\n" ++
         "\n[Global]\n" ++ unlines (map (("- " ++) . show) g) ++
         "\n[Local]\n" ++ unlines (map (("- " ++) . show) l) ++
@@ -75,7 +75,7 @@ varName (EFunction name _ _ _) = name
 varName (EType name _) = name
 
 fromScope :: Scope -> String -> Result String EnvVar
-fromScope [] name = Err $ name ++ " is undefined" 
+fromScope [] name = Err $ name ++ " is undefined"
 fromScope (x:xs) name | varName x == name = Ok x
                       | otherwise = fromScope xs name
 
@@ -89,7 +89,7 @@ pushEnv (Env g l True) v = Env (v:g) l True
 pushEnv (Env g l False) v = Env g (v:l) False
 
 pushVariable :: Env -> Statement -> Result String Env
-pushVariable e (VariableDeclaration n t (Just v)) = case fromEnv e n of 
+pushVariable e (VariableDeclaration n t (Just v)) = case fromEnv e n of
     Ok _ -> Err $ n ++ " redefined"
     _ -> Ok $ pushEnv e (EVariable n t v)
 pushVariable _ (VariableDeclaration n _ Nothing) =
