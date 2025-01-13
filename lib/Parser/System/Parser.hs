@@ -3,6 +3,7 @@
 
 module Parser.System.Parser
   ( parseProgram,
+    parseExpression
   )
 where
 

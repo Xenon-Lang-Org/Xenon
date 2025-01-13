@@ -126,8 +126,11 @@ ensureEval (Ok (e, Nothing)) = Ok (e, zeroExpr)
 ensureEval (Ok (e, Just ret)) = Ok (e, ret)
 ensureEval (Err msg) = Err msg
 
+ensuredEvalBody :: Env -> Body -> Result String Eval
+ensuredEvalBody e b = ensureEval $ evalBody e b
+
 evalProg :: Program -> Result String (Env, Expression)
-evalProg (Program body) = ensureEval $ evalBody (env True) body
+evalProg (Program b) = ensuredEvalBody (env True) b
 
 -- Function
 
