@@ -29,7 +29,6 @@ library
       Compiler.System.WriteWASM
       Compiler.System.WriteWAT
       Parser.Data.Ast
-      Parser.Data.ParserS
       Parser.System.Lexer
       Parser.System.Parser
       Utils.Control.Convert
