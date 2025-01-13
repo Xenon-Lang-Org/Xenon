@@ -80,7 +80,56 @@ data TokenType
   | TFloatLit !Double
   | TIdent !String
   | TEOF
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord)
+
+instance Show TokenType where
+  show TLet = "let"
+  show TFn = "fn"
+  show TIf = "if"
+  show TElif = "elif"
+  show TElse = "else"
+  show TWhile = "while"
+  show TReturn = "return"
+  show TType = "type"
+  show TMut = "mut"
+  show TColon = ":"
+  show TArrow = "->"
+  show TSemicolon = ";"
+  show TComma = ","
+  show TDot = "."
+  show TOpenParen = "("
+  show TCloseParen = ")"
+  show TOpenBrace = "{"
+  show TCloseBrace = "}"
+  show TOpenBracket = "["
+  show TCloseBracket = "]"
+  show TNot = "!"
+  show TAddressOf = "?"
+  show TDereference = "@"
+  show TNor = "~"
+  show TMult = "*"
+  show TDiv = "/"
+  show TMod = "%"
+  show TPlus = "+"
+  show TMinus = "-"
+  show TEq = "=="
+  show TNotEq = "!="
+  show TLessEq = "<="
+  show TGreaterEq = ">="
+  show TLessThan = "<"
+  show TGreaterThan = ">"
+  show TAnd = "&&"
+  show TOr = "||"
+  show TBitAnd = "&"
+  show TBitOr = "|"
+  show TBitXor = "^"
+  show TLShift = "<<"
+  show TRShift = ">>"
+  show TEqSign = "="
+  show (TIntLit i) = show i
+  show (TFloatLit f) = show f
+  show (TIdent s) = s
+  show TEOF = ""
 
 type Lexer = MP.Parsec Void String
 
@@ -331,7 +380,7 @@ tokens = do
 -- TokenStream for Megaparsec parser
 -------------------------------------------------------------------------------
 
-newtype TokenStream = TokenStream {getTokenStream :: [Token]}
+data TokenStream = TokenStream {getTokenStream :: [Token], originalStream :: String}
   deriving (Show)
 
 instance MP.Stream TokenStream where
@@ -344,27 +393,60 @@ instance MP.Stream TokenStream where
   chunkLength _ = length
   chunkEmpty _ = null
 
-  take1_ (TokenStream []) = Nothing
-  take1_ (TokenStream (t : ts)) = Just (t, TokenStream ts)
+  take1_ (TokenStream [] _) = Nothing
+  take1_ (TokenStream (t : ts) o) = Just (t, TokenStream ts o)
 
-  takeN_ n (TokenStream s)
-    | n <= 0 = Just ([], TokenStream s)
+  takeN_ n (TokenStream s o)
+    | n <= 0 = Just ([], TokenStream s o)
     | null s = Nothing
     | otherwise =
         Just (splitAt n s) >>= \(x, y) ->
-          Just (x, TokenStream y)
+          Just (x, TokenStream y o)
 
-  takeWhile_ f (TokenStream s) =
+  takeWhile_ f (TokenStream s o) =
     let (x, y) = span f s
-     in (x, TokenStream y)
-
-instance MP.VisualStream TokenStream where
-  showTokens _ = unwords . map show . toList
-
-reachEof :: MP.PosState s -> MP.PosState TokenStream
-reachEof pst = pst {MP.pstateInput = TokenStream []}
+     in (x, TokenStream y o)
 
 instance MP.TraversableStream TokenStream where
-  reachOffset o pst
-    | o <= 0 = (Nothing, pst)
-    | otherwise = (Nothing, reachEof pst)
+  reachOffset targetOffset pst =
+    let currentOffset = MP.pstateOffset pst
+        needed = targetOffset - currentOffset
+
+        TokenStream ts original = MP.pstateInput pst
+
+        (consumed, remaining) =
+          if needed <= 0
+            then ([], ts)
+            else splitAt needed ts
+
+        newPos :: MP.SourcePos
+        newPos =
+          case reverse consumed of
+            (Token pos _ : _) -> pos
+            _ -> MP.pstateSourcePos pst
+
+        lineNum = MP.unPos (MP.sourceLine newPos) - 1
+        colNum = MP.unPos (MP.sourceColumn newPos) - 1
+        allLines = lines original
+        thisLine =
+          if lineNum >= 0 && lineNum < length allLines
+            then allLines !! lineNum
+            else ""
+
+        (prefix, _suffix) = splitAt colNum thisLine
+
+        newPosState =
+          pst
+            { MP.pstateOffset = targetOffset,
+              MP.pstateSourcePos = newPos,
+              MP.pstateInput = TokenStream remaining original,
+              MP.pstateLinePrefix = prefix,
+              MP.pstateTabWidth = MP.pstateTabWidth pst
+            }
+     in (Just thisLine, newPosState)
+
+
+instance MP.VisualStream TokenStream where
+  showTokens _ ts = unwords . map showToken $ toList ts
+    where
+      showToken (Token _ t) = "\"" ++ show t ++ "\""

@@ -9,14 +9,24 @@ where
 import Control.Monad.Combinators.Expr
 import Data.Char (isUpper)
 import Data.Maybe (isJust)
-import Data.Void
 import Data.Word (Word64)
 import Parser.Data.Ast
 import Parser.System.Lexer (Token (..), TokenStream, TokenType (..))
 import qualified Parser.System.Lexer as Lexer
 import Text.Megaparsec hiding (Token)
+import qualified Text.Megaparsec as MP
 
-type Parser = Parsec Void TokenStream
+data ParsingError
+  = UnexpectedToken TokenType MP.SourcePos
+  | CustomError String
+  deriving (Eq, Ord, Show)
+
+instance MP.ShowErrorComponent ParsingError where
+  showErrorComponent (UnexpectedToken t pos) =
+    "Unexpected token: " ++ show t ++ " at " ++ show pos
+  showErrorComponent (CustomError s) = s
+
+type Parser = Parsec ParsingError TokenStream
 
 -------------------------------------------------------------------------------
 -- Token Matching Helpers
@@ -31,7 +41,7 @@ matchToken f = token testToken mempty
       | otherwise = Nothing
 
 matchTokenType :: TokenType -> Parser Token
-matchTokenType ttype = matchToken (== ttype)
+matchTokenType ttype = matchToken (== ttype) <?> show ttype
 
 -------------------------------------------------------------------------------
 -- Parse Program
@@ -45,16 +55,17 @@ parseProgram = Program <$> many parseStatement
 parseStatement :: Parser Statement
 parseStatement =
   choice
-    [ parseVariableDeclaration,
-      parseFunctionDeclaration,
-      parseWhileLoop,
-      parseIf,
-      parseTypeDeclaration,
-      parseReturnStatement,
+    [ label "variable declaration" parseVariableDeclaration,
+      label "function declaration" parseFunctionDeclaration,
+      label "while loop" parseWhileLoop,
+      label "if statement" parseIf,
+      label "type declaration" parseTypeDeclaration,
+      label "return statement" parseReturnStatement,
       -- both parseVariable and parseStandaloneFunctionCall start with an identifier, so we need to try one first
-      try parseStandaloneFunctionCall,
-      parseVariableReAssignment
+      label "variable reassignment" $ try parseStandaloneFunctionCall,
+      label "variable reassignment" parseVariableReAssignment
     ]
+    <?> "Line must start with a valid statement"
 
 -------------------------------------------------------------------------------
 -- Variable Declaration: let <name>: <type> = <expr>;
@@ -62,9 +73,9 @@ parseStatement =
 parseVariableDeclaration :: Parser Statement
 parseVariableDeclaration = do
   _ <- matchTokenType TLet
-  name <- parseIdentifier
+  name <- parseIdentifier <?> "variable name"
   _ <- matchTokenType TColon
-  ty <- parseType
+  ty <- parseType <?> "variable type"
   initVal <- optional (matchTokenType TEqSign *> parseExpression)
   _ <- matchTokenType TSemicolon
   return $ VariableDeclaration name ty initVal
@@ -75,13 +86,13 @@ parseVariableDeclaration = do
 parseFunctionDeclaration :: Parser Statement
 parseFunctionDeclaration = do
   _ <- matchTokenType TFn
-  name <- parseIdentifier
+  name <- parseIdentifier <?> "function name"
   _ <- matchTokenType TOpenParen
   args <- parseField `sepBy` matchTokenType TComma
   _ <- matchTokenType TCloseParen
   _ <- matchTokenType TArrow
-  retType <- parseType
-  body <- parseBlock
+  retType <- parseType <?> "return type"
+  body <- parseBlock <?> "function body"
   return $ FunctionDeclaration name args retType body
 
 -------------------------------------------------------------------------------
@@ -90,8 +101,8 @@ parseFunctionDeclaration = do
 parseWhileLoop :: Parser Statement
 parseWhileLoop = do
   _ <- matchTokenType TWhile
-  cond <- parseExpression
-  body <- parseBlock
+  cond <- parseExpression <?> "while loop condition"
+  body <- parseBlock <?> "while loop body"
   return $ WhileLoop cond body
 
 -------------------------------------------------------------------------------
@@ -100,10 +111,10 @@ parseWhileLoop = do
 parseIf :: Parser Statement
 parseIf = do
   _ <- matchTokenType TIf
-  cond <- parseExpression
-  thenBody <- parseBlock
-  elifBodies <- many parseElif -- there can be no elifs
-  elseBody <- optional (matchTokenType TElse *> parseBlock)
+  cond <- parseExpression <?> "if condition"
+  thenBody <- parseBlock <?> "if body"
+  elifBodies <- many parseElif
+  elseBody <- optional (matchTokenType TElse *> parseBlock <?> "else body")
   return $ transformIf cond thenBody elifBodies elseBody
 
 -------------------------------------------------------------------------------
@@ -112,8 +123,8 @@ parseIf = do
 parseElif :: Parser (Expression, Body)
 parseElif = do
   _ <- matchTokenType TElif
-  cond <- parseExpression
-  body <- parseBlock
+  cond <- parseExpression <?> "elif condition"
+  body <- parseBlock <?> "elif body"
   return (cond, body)
 
 -- Transform a list of elifs into a nested if-else structure
@@ -131,9 +142,9 @@ transformIf cond thenBody elifBodies elseBody =
 parseTypeDeclaration :: Parser Statement
 parseTypeDeclaration = do
   _ <- matchTokenType TType
-  name <- parseIdentifier
+  name <- parseIdentifier <?> "type name"
   _ <- matchTokenType TEqSign
-  tyDef <- parseType
+  tyDef <- parseType <?> "type definition"
   _ <- matchTokenType TSemicolon
   return $ TypeDeclaration name tyDef
 
@@ -154,9 +165,9 @@ parseStandaloneFunctionCall = do
 -------------------------------------------------------------------------------
 parseVariableReAssignment :: Parser Statement
 parseVariableReAssignment = do
-  name <- parseIdentifier
+  name <- parseIdentifier <?> "variable name"
   _ <- matchTokenType TEqSign
-  expr <- parseExpression
+  expr <- parseExpression <?> "expression"
   _ <- matchTokenType TSemicolon
   return $ VariableReAssignment name expr
 
@@ -166,7 +177,7 @@ parseVariableReAssignment = do
 parseReturnStatement :: Parser Statement
 parseReturnStatement = do
   _ <- matchTokenType TReturn
-  expr <- parseExpression
+  expr <- parseExpression <?> "return expression"
   _ <- matchTokenType TSemicolon
   return $ ReturnStatement expr
 
@@ -175,9 +186,9 @@ parseReturnStatement = do
 -------------------------------------------------------------------------------
 parseField :: Parser Field
 parseField = do
-  name <- parseIdentifier
+  name <- parseIdentifier <?> "field name"
   _ <- matchTokenType TColon
-  ty <- parseType
+  ty <- parseType <?> "field type"
   return (name, ty)
 
 -------------------------------------------------------------------------------
@@ -189,11 +200,12 @@ parseExpression = makeExprParser parseTerm operatorTable
 parseTerm :: Parser Expression
 parseTerm =
   choice
-    [ parseParenthesis,
-      parseLiteral,
-      try parseFunctionCall,
-      parseVariable
+    [ label "parenthesis expression" parseParenthesis,
+      label "literal" parseLiteral,
+      label "function call" (try parseFunctionCall),
+      label "variable" parseVariable
     ]
+    <?> "term"
 
 -------------------------------------------------------------------------------
 -- Parse Parenthesis: ( <expr> )
@@ -206,7 +218,7 @@ parseParenthesis = between (matchTokenType TOpenParen) (matchTokenType TClosePar
 -------------------------------------------------------------------------------
 parseLiteral :: Parser Expression
 parseLiteral = do
-  tok <- matchToken isLiteral
+  tok <- matchToken isLiteral <?> "literal"
   case tokenType tok of
     TIntLit n -> return $ ELiteral (IntLiteral n)
     TFloatLit f -> return $ ELiteral (FloatLiteral f)
@@ -218,7 +230,7 @@ parseLiteral = do
 
 parseVariable :: Parser Expression
 parseVariable = do
-  tok <- matchToken isIdent
+  tok <- matchToken isIdent <?> "variable name"
   case tokenType tok of
     TIdent name -> return $ Variable name
     _ -> fail "Unexpected token, expected identifier"
@@ -228,7 +240,7 @@ parseVariable = do
 
 parseFunctionCall :: Parser Expression
 parseFunctionCall = do
-  name <- parseIdentifier
+  name <- parseIdentifier <?> "function name"
   args <- between (matchTokenType TOpenParen) (matchTokenType TCloseParen) (parseExpression `sepBy` matchTokenType TComma)
   return $ FunctionCall name args
 
@@ -273,13 +285,14 @@ operatorTable =
 parseType :: Parser Type
 parseType =
   choice
-    [ try parsePrimitiveType,
-      parsePointerType,
-      parseStructType,
-      parseArrayType,
-      parseEnumType,
-      parseCustomType
+    [ label "primitive type (i32, i64, ...)" $ try parsePrimitiveType,
+      label "pointer type (*mut i32)" parsePointerType,
+      label "struct type" parseStructType,
+      label "array type" parseArrayType,
+      label "enum type" parseEnumType,
+      label "custom type defined previously" parseCustomType
     ]
+    <?> "type"
 
 parseMutablility :: Parser Mutablility
 parseMutablility = do
@@ -288,7 +301,7 @@ parseMutablility = do
 
 parsePrimitiveType :: Parser Type
 parsePrimitiveType = do
-  mutability <- parseMutablility
+  mutability <- parseMutablility <?> "mutability"
   tok <- matchToken isPrimitive
   case tokenType tok of
     TIdent "i8" -> return $ PrimitiveType mutability I8
@@ -318,8 +331,8 @@ parsePrimitiveType = do
 parsePointerType :: Parser Type
 parsePointerType = do
   _ <- matchTokenType TMult
-  mutability <- parseMutablility
-  ty <- parseType
+  mutability <- parseMutablility <?> "pointer mutability"
+  ty <- parseType <?> "pointer type"
   return $ PointerType mutability ty
 
 -------------------------------------------------------------------------------
@@ -327,7 +340,7 @@ parsePointerType = do
 -------------------------------------------------------------------------------
 parseStructType :: Parser Type
 parseStructType = do
-  mutability <- parseMutablility
+  mutability <- parseMutablility <?> "struct mutability"
   _ <- matchTokenType TOpenBrace
   fields <- parseField `sepBy` matchTokenType TComma
   _ <- matchTokenType TCloseBrace
@@ -338,11 +351,11 @@ parseStructType = do
 -------------------------------------------------------------------------------
 parseArrayType :: Parser Type
 parseArrayType = do
-  mutability <- parseMutablility
+  mutability <- parseMutablility <?> "array mutability"
   _ <- matchTokenType TOpenBracket
-  size <- fromIntegral <$> parseIntLiteral
+  size <- fromIntegral <$> parseIntLiteral <?> "array size"
   _ <- matchTokenType TColon
-  ty <- parseType
+  ty <- parseType <?> "array type"
   _ <- matchTokenType TCloseBracket
   return $ ArrayType mutability (Array size ty)
 
@@ -351,7 +364,7 @@ parseArrayType = do
 -------------------------------------------------------------------------------
 parseEnumType :: Parser Type
 parseEnumType = do
-  mutability <- parseMutablility
+  mutability <- parseMutablility <?> "enum mutability"
   _ <- matchTokenType TLessThan
   variants <- parseIdentifier `sepBy` matchTokenType TComma
   _ <- matchTokenType TGreaterThan
@@ -359,8 +372,8 @@ parseEnumType = do
 
 parseCustomType :: Parser Type
 parseCustomType = do
-  mutability <- parseMutablility
-  tok <- matchToken isCustom
+  mutability <- parseMutablility <?> "custom type mutability"
+  tok <- matchToken isCustom <?> "custom type name"
   case tokenType tok of
     TIdent name -> return $ CustomType mutability name
     _ -> fail "Custom type names must start with a capital letter"
@@ -379,7 +392,7 @@ parseBlock = between (matchTokenType TOpenBrace) (matchTokenType TCloseBrace) (m
 -------------------------------------------------------------------------------
 parseIdentifier :: Parser String
 parseIdentifier = do
-  tok <- matchToken isIdent
+  tok <- matchToken isIdent <?> "identifier"
   case tokenType tok of
     TIdent name -> return name
     _ -> fail "Unexpected token, expected identifier"
@@ -389,7 +402,7 @@ parseIdentifier = do
 
 parseIntLiteral :: Parser Word64
 parseIntLiteral = do
-  tok <- matchToken isInt
+  tok <- matchToken isInt <?> "integer literal"
   case tokenType tok of
     TIntLit n ->
       if n > toInteger (maxBound :: Word64)
@@ -419,11 +432,11 @@ examplemain = do
     runTest input = do
       putStrLn $ "Input: " ++ input
       case runLexer input of
-        Left err -> putStrLn $ "lexer: " ++ errorBundlePretty err
-        Right tokens -> case runParser parseProgram "FILE" (Lexer.TokenStream tokens) of
+        Left err -> putStrLn $ errorBundlePretty err
+        Right tokens -> case runParser parseProgram "PARSER" (Lexer.TokenStream tokens input) of
           Left err -> do
             putStrLn $ "tokens: " ++ show tokens
-            putStrLn $ "parser: " ++ errorBundlePretty err
+            putStrLn $ errorBundlePretty err
           Right result -> putStrLn $ "Parsed successfully: " ++ show result
       putStrLn ""
-    runLexer = runParser Lexer.tokens "<test>"
+    runLexer = runParser Lexer.tokens "LEXER"
