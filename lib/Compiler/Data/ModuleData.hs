@@ -1,4 +1,4 @@
-module ModuleData (
+module Compiler.Data.ModuleData (
     WASMModule(..),
     TypeSection(..),
     FunctionType(..),

@@ -1,4 +1,4 @@
-module EncodeNumbers (
+module Compiler.System.EncodeNumbers (
     encodeU32LEB128,
     encodeS32LEB128,
     encodeF32,

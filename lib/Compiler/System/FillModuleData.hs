@@ -1,9 +1,9 @@
 {-# LANGUAGE LambdaCase #-}
 
-module FillModuleData (fillWASMModuleFromAST) where
+module Compiler.System.FillModuleData (fillWASMModuleFromAST) where
 
 import Parser.Data.Ast
-import ModuleData
+import Compiler.Data.ModuleData
 import Data.Maybe (fromMaybe)
 
 collectTypes :: [Statement] -> [TypeSection]

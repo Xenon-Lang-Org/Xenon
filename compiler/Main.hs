@@ -1,7 +1,7 @@
 import Parser.Data.Ast
-import WriteWASM
-import FillModuleData
-import WriteWAT
+import Compiler.System.WriteWASM
+import Compiler.System.FillModuleData
+import Compiler.System.WriteWAT
 
 -- input to test Double
 testF64AST :: Program

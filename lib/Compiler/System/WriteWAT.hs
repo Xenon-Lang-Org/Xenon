@@ -1,6 +1,6 @@
-module WriteWAT (printModule) where
+module Compiler.System.WriteWAT (printModule) where
 
-import ModuleData
+import Compiler.Data.ModuleData
 
 printModule :: WASMModule -> IO ()
 printModule wasmModule = do

@@ -23,6 +23,11 @@ source-repository head
 
 library
   exposed-modules:
+      Compiler.Data.ModuleData
+      Compiler.System.EncodeNumbers
+      Compiler.System.FillModuleData
+      Compiler.System.WriteWASM
+      Compiler.System.WriteWAT
       Parser.Data.Ast
       Parser.Data.ParserS
       Parser.System.Lexer
@@ -50,11 +55,6 @@ library
 executable compiler
   main-is: Main.hs
   other-modules:
-      EncodeNumbers
-      FillModuleData
-      ModuleData
-      WriteWASM
-      WriteWAT
       Paths_xenon
   autogen-modules:
       Paths_xenon

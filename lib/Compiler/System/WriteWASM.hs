@@ -1,9 +1,9 @@
-module WriteWASM (writeWasmModule) where
+module Compiler.System.WriteWASM (writeWasmModule) where
 import Data.Word
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C8
-import ModuleData
-import EncodeNumbers
+import Compiler.Data.ModuleData
+import Compiler.System.EncodeNumbers
 
 encodeVector :: [Word8] -> [Word8]
 encodeVector xs =
