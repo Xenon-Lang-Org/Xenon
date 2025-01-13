@@ -48,6 +48,13 @@ evalExpr e expr = case expr of
 
     FunctionCall n a -> callFunc e n a
 
+evalCastExpr :: Env -> Type -> Expression -> Result String Eval
+evalCastExpr e t expr = case evalExpr e expr of
+    Ok (e', expr') -> case castExpr e' expr' t of
+        Ok expr'' -> Ok (e', expr'') 
+        Err m -> Err m
+    Err m -> Err m
+
 -- Statement
 
 evalStatement :: Env -> Statement -> Result String MEval
@@ -70,8 +77,11 @@ evalStatement e st = case st of
         Ok (e', _) -> Ok (e', Nothing)
         Err m -> Err m
 
-    VariableReAssignment n v -> case evalExpr e v of
-        Ok (e', v') -> both (assignVar e' n v', Ok Nothing)
+    VariableReAssignment n v -> case fromEnv e n of
+        Ok (EVariable _ t _) -> case evalCastExpr e t v of
+            Ok (e', v') -> both (assignVar e' n v', Ok Nothing)
+            Err m -> Err m
+        Ok _ -> Err (n ++ " is not assignable")
         Err m -> Err m
 
     _ -> declare e st `andThen` (Ok . pairR Nothing)
