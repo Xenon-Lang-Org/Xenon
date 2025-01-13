@@ -20,7 +20,6 @@ import Parser.System.Lexer (Token (..), TokenStream, TokenType (..))
 import qualified Parser.System.Lexer as Lexer
 import Text.Megaparsec hiding (Token)
 import qualified Text.Megaparsec as MP
-import Utils.Control.Convert (Into (into))
 import Utils.Data.Result (Result (Err, Ok))
 
 data ParsingError

@@ -24,7 +24,6 @@ source-repository head
 library
   exposed-modules:
       Parser.Data.Ast
-      Parser.Data.ParserS
       Parser.System.Lexer
       Parser.System.Parser
       Utils.Control.Convert
