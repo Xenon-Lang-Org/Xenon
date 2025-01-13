@@ -72,8 +72,11 @@ tests:
     dependencies:
     - QuickCheck
     - hspec
+    - base
     - hspec-discover
     - megaparsec
     - text
     - containers
+    - bytestring
+    - parser-combinators
     - xenon
