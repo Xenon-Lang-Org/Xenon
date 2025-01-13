@@ -24,7 +24,7 @@ import Utils.Data.Result
 
 data EnvVar = EVariable String Type Expression
             | EFunction String [Field] Type Body
-            | EType String TypeDefinition
+            | EType String Type
             deriving (Show, Eq)
 
 type Scope = [EnvVar]
@@ -119,15 +119,8 @@ pushFunction e (FunctionDeclaration n a t b) = case fromEnv e n of
     _ -> Ok $ pushEnv e (EFunction n a t b)
 pushFunction _ f = Err $ "Bad function type (" ++ show f ++ ")"
 
-typeDefName :: TypeDefinition -> String
-typeDefName (StructDeclaration n _) = n
-typeDefName (ArrayDeclaration n _) = n
-typeDefName (EnumDeclaration n _) = n
-
 pushType :: Env -> Statement -> Result String Env
-pushType e (TypeDeclaration t) = case fromEnv e n of
+pushType e (TypeDeclaration n t) = case fromEnv e n of
     Ok _ -> Err $ n ++ " redefined"
     _ -> Ok $ pushEnv e (EType n t)
-    where
-        n = typeDefName t
 pushType _ t = Err $ "Bad type definition (" ++ show t ++ ")"

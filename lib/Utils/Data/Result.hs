@@ -8,6 +8,7 @@ module Utils.Data.Result
     isOk,
     isErr,
     both,
+    mapBoth
   )
 where
 import Control.Applicative (Alternative (empty), (<|>))
@@ -149,9 +150,11 @@ isOk (Err _) = False
 isErr :: Result e a -> Bool
 isErr = not . isOk
 
+both :: (Result e a, Result e b) -> Result e (a, b)
+both (Ok x, Ok y) = Ok (x, y)
+both (Err e, _) = Err e
+both (_, Err e) = Err e
+
 -- | Combines two 'Result's into a single 'Result' with a tuple of the values.
-both :: (a -> Result e b) -> (a, a) -> Result e (b, b)
-both f (x, y) = case (f x, f y) of
-    (Ok x', Ok y') -> Ok (x', y')
-    (Err err, _) -> Err err
-    (_, Err err) -> Err err
+mapBoth :: (a -> Result e b) -> (a, a) -> Result e (b, b)
+mapBoth f (x, y) = both (f x, f y)

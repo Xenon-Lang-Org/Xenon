@@ -32,43 +32,47 @@ evalOperand e (l, r) = case evalExpr e l of
 evalExpr :: Env -> Expression -> Result String Eval
 evalExpr e expr = case expr of
     Variable n -> case fromEnv e n of
-        Ok (EVariable _ t v) -> case toLiteralExpr t v of
-            Ok l -> Ok (e, ELiteral l)
-            Err msg -> Err msg
+        Ok (EVariable _ _ v) -> Ok (e, v)
         Ok _ -> Err $ n ++ " is not a variable"
         Err msg -> Err msg
 
     ELiteral l -> Ok (e, ELiteral l)
 
-    BinaryOp Assign (Variable n) r -> case evalExpr e r of
-        Ok (e', r') -> evalBinOp e' Assign (Variable n) r'
-        Err msg -> Err msg
-
     BinaryOp op l r -> case evalOperand e (l, r) of
-        Ok (e', (l', r')) -> evalBinOp e' op l' r'
+        Ok (e', (l', r')) -> both (Ok e', evalBinOp op l' r')
         Err msg -> Err msg
 
     UnaryOp _ _ -> Err "Unary operator are not supported yet"
 
     Parenthesis expr' -> evalExpr e expr'
 
-    FunctionCall fname args -> callFunc e fname args
+    FunctionCall n a -> callFunc e n a
 
 -- Statement
 
 evalStatement :: Env -> Statement -> Result String MEval
 evalStatement e st = case st of
-    ExpressionStatement expr -> case evalExpr e expr of
-        Ok (e', _) -> Ok (e', Nothing)
-        Err msg -> Err msg
 
     WhileLoop cond body -> evalWhile e cond body
 
-    Conditional {} -> Err "Not implemented"
+    If c b eb -> case evalExpr e c of
+        Ok (e', c') -> if toBool c' then evalBody e' b else
+            case eb of
+                Just eb' -> evalBody e' eb'
+                _ -> Ok (e', Nothing)
+        Err m -> Err m
 
     ReturnStatement ret -> case evalExpr e ret of
         Ok (e', ret') -> Ok (e', Just ret')
         Err msg -> Err msg
+
+    StandaloneFunctionCall n a -> case callFunc e n a of
+        Ok (e', _) -> Ok (e', Nothing)
+        Err m -> Err m
+
+    VariableReAssignment n v -> case evalExpr e v of
+        Ok (e', v') -> both (assignVar e' n v', Ok Nothing)
+        Err m -> Err m
 
     _ -> declare e st `andThen` (Ok . pairR Nothing)
 
@@ -86,23 +90,18 @@ declare e (VariableDeclaration name t (Just expr)) = case evalExpr e expr of
         Ok expr'' -> pushVariable e' (VariableDeclaration name t (Just expr''))
         Err msg -> Err msg
     Err msg -> Err msg
-declare e (TypeDeclaration t) = pushType e (TypeDeclaration t)
+declare e (TypeDeclaration m t) = pushType e (TypeDeclaration m t)
 declare _ _ = Err "Invalid declaration"
 
-evalLoop :: EAcc -> Expression -> Body -> MEval -> Result String MEval
-evalLoop _ _ _ (e, Just ret) = Ok (e, Just ret)
-evalLoop f cond body (e, Nothing) = case f e cond of
-    Ok (e', cond') -> case toBool cond' of
-        Ok False -> Ok (e, Nothing)
-        Err msg -> Err msg
-        _ -> case evalBody e' body of 
-            Ok (e'', Nothing) -> evalLoop f cond body (e'', Nothing)
-            Err msg -> Err msg
-            Ok ret -> Ok ret
-    Err msg -> Err msg
-
 evalWhile :: Env -> Expression -> Body -> Result String MEval
-evalWhile e cond body = evalLoop evalExpr cond body (e, Nothing)
+evalWhile e c b = case evalExpr e c of
+    Err m -> Err m
+    Ok (e', c') -> if not (toBool c')
+        then Ok (e', Nothing)
+        else case evalBody e' b of
+            Ok (e'', Nothing) -> evalWhile e'' c b
+            Ok r -> Ok r
+            Err m -> Err m
 
 -- Body
 
@@ -142,12 +141,12 @@ callEnv e args params =
         Ok (_, new) -> Ok new
         Err msg -> Err msg
 
-callFunc :: Env -> String -> [Expression] -> Result String (Env, Expression)
-callFunc e name args = do
-    func <- fromEnv e name
+callFunc :: Env -> String -> [Expression] -> Result String Eval
+callFunc e n args = do
+    func <- fromEnv e n
     case func of
         EFunction _ params _ body -> do
             e' <- callEnv e args params
             (e'', expr') <- evalBody e' body
             return (setGlobalScope e (global e'') , fromMaybe zeroExpr expr')
-        _ -> Err $ name ++ " is not callable"
+        _ -> Err $ n ++ " is not callable"

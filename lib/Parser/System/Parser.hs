@@ -433,7 +433,7 @@ examplemain = do
       putStrLn $ "Input: " ++ input
       case runLexer input of
         Left err -> putStrLn $ errorBundlePretty err
-        Right tokens -> case runParser parseProgram "PARSER" (Lexer.TokenStream tokens input) of
+        Right tokens -> case runParser parseProgram "" (Lexer.TokenStream tokens input) of
           Left err -> do
             putStrLn $ "tokens: " ++ show tokens
             putStrLn $ errorBundlePretty err

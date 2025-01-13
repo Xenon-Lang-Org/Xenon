@@ -15,16 +15,16 @@ wrap (mn, mx) n | n >= mn && n <= mx = n
                 | n > mx = wrap (mn, mx) (mn + (n - mx - 1))
                 | otherwise = wrap (mn, mx) (mx - (n + mn + 1))
 
-castInteger :: Integer -> Primitive -> Integer
-castInteger n I8 = wrap (-128, 127) n
-castInteger n I16 = wrap (-32768, 32767) n
-castInteger n I32 = wrap (-2147483648, 2147483647) n
-castInteger n I64 = wrap (-9223372036854775808, 9223372036854775807) n
-castInteger n U8 = wrap (0, 255) n
-castInteger n U16 = wrap (0, 65535) n
-castInteger n U32 = wrap (0, 4294967295) n
-castInteger n U64 = wrap (0, 18446744073709551615) n 
-castInteger n _ = n
+castInteger :: Primitive -> Integer -> Integer
+castInteger I8 = wrap (-128, 127)
+castInteger I16 = wrap (-32768, 32767)
+castInteger I32 = wrap (-2147483648, 2147483647)
+castInteger I64 = wrap (-9223372036854775808, 9223372036854775807)
+castInteger U8 = wrap (0, 255)
+castInteger U16 = wrap (0, 65535)
+castInteger U32 = wrap (0, 4294967295)
+castInteger U64 = wrap (0, 18446744073709551615) 
+castInteger _ = id
 
 castDouble :: Double -> Primitive -> Double
 castDouble n F32 = wrap (-3.4028235e38, 3.4028235e38) n
@@ -37,24 +37,20 @@ isFloat t = t `elem` [F32, F64]
 castLiteral :: Literal -> Primitive -> Literal
 castLiteral (IntLiteral n) t = if isFloat t
     then FloatLiteral $ castDouble (fromIntegral n) t
-    else IntLiteral $ castInteger n t
+    else IntLiteral $ castInteger t n
 castLiteral (FloatLiteral n) t = if isFloat t
     then FloatLiteral $ castDouble n t
-    else IntLiteral $ castInteger (round n) t
+    else IntLiteral $ castInteger t (round n)
 
 castExpr :: Env -> Expression -> Type -> Result String Expression
-castExpr _ (ELiteral l) (PrimitiveType t) = Ok $ ELiteral $ castLiteral l t
+castExpr _ (ELiteral l) (PrimitiveType _ t) = Ok $ ELiteral $ castLiteral l t
 castExpr _ _ t = Err $ "Failed to cast expression to " ++ show t
 
 toLiteralExpr :: Type -> Expression -> Result String Literal
 toLiteralExpr _ (ELiteral v) = Ok v
 toLiteralExpr _ v = Err $ "Cannot deduce literal from " ++ show v
 
-numToBool :: (Num a, Eq a) => a -> Bool
-numToBool 0 = False
-numToBool _ = True
-
-toBool :: Expression -> Result String Bool
-toBool (ELiteral (IntLiteral n)) = Ok $ numToBool n
-toBool (ELiteral (FloatLiteral n)) = Ok $ numToBool n
-toBool _ = Err "Invalid boolean expression conversion"
+toBool :: Expression -> Bool
+toBool (ELiteral (IntLiteral 0)) = False
+toBool (ELiteral (FloatLiteral 0)) = False
+toBool _ = True
