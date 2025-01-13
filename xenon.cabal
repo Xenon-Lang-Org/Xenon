@@ -23,13 +23,9 @@ source-repository head
 
 library
   exposed-modules:
-      Interpreter.BinOp
-      Interpreter.Environment
-      Interpreter.Evaluator
-      Interpreter.Scope
-      Interpreter.Types
       Parser.Data.Ast
       Parser.Data.ParserS
+      Parser.System.Lexer
       Parser.System.Parser
       Utils.Control.Convert
       Utils.Data.Result
@@ -43,6 +39,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , containers
     , megaparsec
     , parser-combinators >=1.3.0
@@ -60,24 +57,7 @@ executable compiler
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
-    , containers
-    , megaparsec
-    , parser-combinators >=1.3.0
-    , text
-    , xenon
-  default-language: Haskell2010
-
-executable interpreter
-  main-is: Main.hs
-  other-modules:
-      Paths_xenon
-  autogen-modules:
-      Paths_xenon
-  hs-source-dirs:
-      interpreter
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      base >=4.7 && <5
+    , bytestring
     , containers
     , megaparsec
     , parser-combinators >=1.3.0
@@ -96,6 +76,7 @@ executable wasm-interpreter
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , containers
     , megaparsec
     , parser-combinators >=1.3.0
@@ -108,6 +89,9 @@ test-suite test
   main-is: Main.hs
   other-modules:
       ExampleSpec
+      LexerQuickCheckSpec
+      LexerSpec
+      ParserSpec
       Paths_xenon
   autogen-modules:
       Paths_xenon
@@ -116,12 +100,13 @@ test-suite test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
-    , base >=4.7 && <5
+    , base
+    , bytestring
     , containers
     , hspec
     , hspec-discover
     , megaparsec
-    , parser-combinators >=1.3.0
+    , parser-combinators
     , text
     , xenon
   default-language: Haskell2010
