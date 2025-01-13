@@ -23,6 +23,11 @@ source-repository head
 
 library
   exposed-modules:
+      Compiler.Data.ModuleData
+      Compiler.System.EncodeNumbers
+      Compiler.System.FillModuleData
+      Compiler.System.WriteWASM
+      Compiler.System.WriteWAT
       Parser.Data.Ast
       Parser.System.Lexer
       Parser.System.Parser
@@ -38,6 +43,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , binary
     , bytestring
     , containers
     , megaparsec
@@ -56,6 +62,7 @@ executable compiler
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , binary
     , bytestring
     , containers
     , megaparsec
@@ -75,6 +82,7 @@ executable wasm-interpreter
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , binary
     , bytestring
     , containers
     , megaparsec
@@ -87,6 +95,7 @@ test-suite test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      CompilerSpec
       ExampleSpec
       LexerQuickCheckSpec
       LexerSpec
@@ -100,6 +109,7 @@ test-suite test
   build-depends:
       QuickCheck
     , base
+    , binary
     , bytestring
     , containers
     , hspec
