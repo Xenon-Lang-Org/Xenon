@@ -51,18 +51,45 @@ spec = do
             castExpr (env True) (iLit (-1)) iI32 `shouldSatisfy` isExpr (iLit (-1))
             castExpr (env True) (iLit (-1)) iU32 `shouldSatisfy` isExpr (iLit 4294967295)
 
-        it "should evaluate the expression" $ do
+        it "should evaluate the variable expression" $ do
+            evalExpr (envWith True [eVarI "foo" 3]) (Variable "foo")
+                `shouldSatisfy` mEvalExprIs (iLit 3)
+            evalExpr (envWith True [eVarI "foo" 3]) (Variable "bar")
+                `shouldSatisfy` isErr
 
-            -- Binary Operation
+        it "should evaluate the literal expression" $ do
+            evalExpr (env True) (ELiteral $ IntLiteral 42)
+                `shouldSatisfy` mEvalExprIs (iLit 42)
+            evalExpr (env True) (ELiteral $ FloatLiteral 3.14)
+                `shouldSatisfy` mEvalExprIs (fLit 3.14)
+
+        it "should evaluate the binary operation" $ do
             evalExpr (envWith True [eVarI "foo" 12]) (BinaryOp Add (Variable "foo") (iLit 8))
                 `shouldSatisfy` mEvalExprIs (iLit 20)
             evalExpr (envWith True [eVarI "foo" 0]) (BinaryOp Div (iLit 8) (Variable "foo"))
                 `shouldBe` Err "Division by zero"
+            evalExpr (envWith True [eVarI "baz" 2]) (BinaryOp Shl (Variable "baz") (iLit 8))
+                `shouldSatisfy` mEvalExprIs (iLit 512)
+
+        it "should evaluate the unary operation" $ do
+            evalExpr (env True) (UnaryOp Negate (iLit 8))
+                `shouldSatisfy` mEvalExprIs (iLit 0)
+            evalExpr (env True) (UnaryOp Negative (iLit 12))
+                `shouldSatisfy` mEvalExprIs (iLit (-12))
+            evalExpr (env True) (UnaryOp BitNot (iLit 24))
+                `shouldSatisfy` mEvalExprIs (iLit (-25))
+
+        it "should evaluate the parenthesis expression" $ do
+            evalExpr (envWith True [eVarI "baz" 13]) (Parenthesis (Variable "baz"))
+                `shouldSatisfy` mEvalExprIs (iLit 13)
 
 -- Helpers
 
 iLit :: Integer -> Expression
 iLit i = ELiteral $ IntLiteral i
+
+fLit :: Double -> Expression
+fLit i = ELiteral $ FloatLiteral i
 
 iI8 :: Type
 iI8 = PrimitiveType Immutable I8
