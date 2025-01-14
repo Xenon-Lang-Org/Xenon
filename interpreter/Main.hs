@@ -14,8 +14,8 @@ parseProg raw = do
   let runLexer = runParser Lexer.tokens "lexer"
   case runLexer raw of
     Left err -> Err $ errorBundlePretty err
-    Right tokens -> case runParser parseProgram "input" (Lexer.TokenStream tokens raw) of
-      Left err -> Err $ "tokens: " ++ show tokens ++ "\n" ++ errorBundlePretty err
+    Right t -> case runParser parseProgram "input" (Lexer.TokenStream t raw) of
+      Left err -> Err $ "token: " ++ show t ++ "\n" ++ errorBundlePretty err
       Right result -> Ok result
 
 parseExpr :: String -> Result String Expression
@@ -23,8 +23,8 @@ parseExpr raw = do
   let runLexer = runParser Lexer.tokens "lexer"
   case runLexer raw of
     Left err -> Err $ errorBundlePretty err
-    Right tokens -> case runParser parseExpression "input" (Lexer.TokenStream tokens raw) of
-      Left err -> Err $ "tokens: " ++ show tokens ++ "\n" ++ errorBundlePretty err
+    Right t -> case runParser parseExpression "input" (Lexer.TokenStream t raw) of
+      Left err -> Err $ "token: " ++ show t ++ "\n" ++ errorBundlePretty err
       Right result -> Ok result
 
 isFnCall :: Body -> Bool
