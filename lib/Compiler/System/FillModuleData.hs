@@ -156,7 +156,17 @@ toInstruction locMap gMap _ (VariableReAssignment name expr) =
            Nothing -> error $ "Unknown variable for assignment: " ++ name
 
 -- VariableDeclaration in top-level statements
-toInstruction _ _ _ (VariableDeclaration {}) = []
+toInstruction locMap gMap funcMap (VariableDeclaration name _ maybeExpr) =
+  case lookupVar locMap name of
+    Just (_, localIdx) ->
+      let initInstrs = maybe [] (toInstructionFromExpr locMap gMap funcMap) maybeExpr
+      in initInstrs ++ [ModuleLocalSet localIdx]
+    Nothing ->
+      case lookupGlobal gMap name of
+        Just (globalIdx, _) ->
+          let initInstrs = maybe [] (toInstructionFromExpr locMap gMap funcMap) maybeExpr
+          in initInstrs ++ [ModuleGlobalSet globalIdx]
+        Nothing -> error $ "Unknown variable for declaration: " ++ name
 
 -- FunctionDeclaration
 toInstruction _ _ _ (FunctionDeclaration {}) = []
