@@ -27,9 +27,13 @@ parseExpr raw = do
       Left err -> Err $ "tokens: " ++ show tokens ++ "\n" ++ errorBundlePretty err
       Right result -> Ok result
 
+isFnCall :: Body -> Bool
+isFnCall [StandaloneFunctionCall _ _] = True
+isFnCall _ = False
+
 evalProgExprStr :: Env -> String -> Result String (Env, Maybe Expression)
 evalProgExprStr e raw = case parseProg raw of
-  Ok (Program b) | not (null b) -> case evalBody e b of
+  Ok (Program b) | not (null b) && not (isFnCall b) -> case evalBody e b of
     Ok (e', _) -> Ok (e', Nothing)
     Err m -> Err m
   _ -> case parseExpr raw of
