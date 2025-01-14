@@ -10,7 +10,7 @@ where
 import Parser.Data.Ast
 import Utils.Data.Result
 import Interpreter.Data.Environment
-import Interpreter.System.BinaryOperation
+import Interpreter.System.Operation
 import Interpreter.System.Types
 import Data.Foldable()
 import Data.Maybe (fromMaybe)
@@ -41,7 +41,11 @@ evalExpr e expr = case expr of
         Ok (e', (l', r')) -> both (Ok e', evalBinOp op l' r')
         Err msg -> Err msg
 
-    UnaryOp _ _ -> Err "Unary operator are not supported yet"
+    UnaryOp op expr' -> case evalExpr e expr' of
+        Err m -> Err m
+        Ok (e', expr'') -> case evalUnaryOp op expr'' of
+            Err m -> Err m
+            Ok res -> Ok (e', res)
 
     Parenthesis expr' -> evalExpr e expr'
 
