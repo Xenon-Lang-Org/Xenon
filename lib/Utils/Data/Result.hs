@@ -7,8 +7,11 @@ module Utils.Data.Result
     unwrapOr,
     isOk,
     isErr,
+    both,
+    mapBoth
   )
 where
+import Control.Applicative (Alternative (empty), (<|>))
 
 {- |
 The 'Result' type represents a value that can be either an error or a success.
@@ -84,9 +87,16 @@ instance Applicative (Result e) where
   (Err e) <*> _ = Err e
   _ <*> (Err e) = Err e
 
+instance Alternative (Result e) where
+  empty = Err undefined
+  (Ok x) <|> _ = Ok x
+  _ <|> (Ok x) = Ok x
+  (Err e) <|> (Err _) = Err e
+
 instance Monad (Result e) where
   return = pure
-  (>>=) = andThen
+  (Ok x) >>= f = f x
+  (Err e) >>= _ = Err e
 
 instance (Eq o, Eq e) => Eq (Result o e) where
   (Ok x) == (Ok y) = x == y
@@ -139,3 +149,12 @@ isOk (Err _) = False
 -- Returns 'False' if the 'Result' is an 'Err'.
 isErr :: Result e a -> Bool
 isErr = not . isOk
+
+both :: (Result e a, Result e b) -> Result e (a, b)
+both (Ok x, Ok y) = Ok (x, y)
+both (Err e, _) = Err e
+both (_, Err e) = Err e
+
+-- | Combines two 'Result's into a single 'Result' with a tuple of the values.
+mapBoth :: (a -> Result e b) -> (a, a) -> Result e (b, b)
+mapBoth f (x, y) = both (f x, f y)

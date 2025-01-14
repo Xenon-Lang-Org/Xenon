@@ -18,6 +18,8 @@ module Parser.Data.Ast
   )
 where
 
+import Data.List(intercalate)
+
 newtype Program = Program [Statement]
   deriving (Show, Eq)
 
@@ -74,14 +76,26 @@ data Expression
   | UnaryOp !UnaryOp Expression -- <op> <expr>
   | Parenthesis Expression -- (<expr>)
   | FunctionCall FunctionName [Expression] -- <func_name>(<args>)
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show Expression where
+  show (Variable n) = show n
+  show (ELiteral l) = show l
+  show (BinaryOp op l r) = show l ++ " " ++ show op ++ " " ++ show r
+  show (UnaryOp op ex) = show op ++ " " ++ show ex
+  show (Parenthesis ex) = show "(" ++ show ex ++ show ")"
+  show (FunctionCall n a) = show n ++ "(" ++ intercalate ", " (map show a) ++ show ")"
 
 data Literal
   = -- | StringLiteral String
     IntLiteral !Integer
   | FloatLiteral !Double
   deriving
-    (Show, Eq)
+    (Eq)
+
+instance Show Literal where
+  show (IntLiteral n) = show n
+  show (FloatLiteral n) = show n
 
 data BinOp
   = Add -- +

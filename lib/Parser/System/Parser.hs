@@ -6,7 +6,8 @@ module Parser.System.Parser
     parseFileAndPrintErrors,
     unwrapErrors,
     parseFile,
-    parseString
+    parseString,
+    parseExpression
   )
 where
 
