@@ -63,6 +63,9 @@ To run the functional tests:
 ./test/tester.sh
 ```
 
+### Documentation
+[Documentation Repository](https://github.com/Xenon-Lang-Org/docs)
+
 ### Authors
 - [Léo Wehrle - Rentmeister](https://github.com/leoWherle)
 - [Théodore Magna](https://github.com/TheodoreMagna)
