@@ -33,4 +33,5 @@ run_test examples/multiple_if.xn "Multiple If" examples/compiled/multiple_if.was
 run_test examples/while.xn "While" examples/compiled/while.wasm
 run_test examples/is_prime.xn "Is Prime" examples/compiled/is_prime.wasm
 run_test examples/is_prime_global.xn "Is Prime Global" examples/compiled/is_prime_global.wasm
+run_test examples/my_pow.xn "My Pow" examples/compiled/my_pow.wasm
 
