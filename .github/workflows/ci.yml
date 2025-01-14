@@ -1,4 +1,4 @@
-name: contact
+name: CI/CD Pipeline
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   docker:
-    uses: Xenon-Lang-Org/Glados-image/.github/workflows/docker-build.yml@main
+    uses: github.com/xenon-lang-org/glados-image/.github/workflows/docker-build.yml@main
     with:
       repository: ${{ github.repository }}
       ref: ${{ github.ref }}
