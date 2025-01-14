@@ -71,7 +71,7 @@ emptyContext = AnalysisContext
 -------------------------------------------------------------------------------
 analyze :: Program -> Either [AnalysisError] AnalysisResult
 analyze prog@(Program stmts) = do
-  (finalCtx, errors) <- analyzeStatements emptyContext stmts
+  (_, errors) <- analyzeStatements emptyContext stmts
   if null errors
     then do
       let ir = optimizeIR $ astToIR prog
@@ -131,7 +131,7 @@ analyzeFuncDecl ctx name params retType body = do
     then Right (ctx { functions = Map.insert name (params, retType) (functions ctx) }, bodyErrs)
     else Left [MissingReturnStatement name]
   where
-    addParam (name, typ) = Map.insert name (typ, True)
+    addParam (named, typ) = Map.insert named (typ, True)
 
 -------------------------------------------------------------------------------
 -- | Analyze while loops
@@ -226,14 +226,14 @@ analyzeExpr ctx expr = case expr of
   ELiteral (IntLiteral _) -> Right (PrimitiveType Immutable I32)
   ELiteral (FloatLiteral _) -> Right (PrimitiveType Immutable F32)
   
-  BinaryOp op e1 e2 -> do
+  BinaryOp _ e1 e2 -> do
     t1 <- analyzeExpr ctx e1
     t2 <- analyzeExpr ctx e2
     if typeMatches t1 t2
       then Right t1
       else Left [TypeMismatch t1 t2]
   
-  UnaryOp op e -> analyzeExpr ctx e
+  UnaryOp _ e -> analyzeExpr ctx e
   
   Parenthesis e -> analyzeExpr ctx e
   
