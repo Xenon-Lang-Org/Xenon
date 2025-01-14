@@ -1,0 +1,18 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  docker:
+    uses: Xenon-Lang-Org/Glados-image/.github/docker/docker-build.yml@main
+    with:
+      repository: ${{ github.repository }}
+      ref: ${{ github.ref }}
+    secrets:
+      PAT: ${{ secrets.GH_PAT }}
+      REGISTRY_USERNAME: ${{ github.actor }}
+      REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
