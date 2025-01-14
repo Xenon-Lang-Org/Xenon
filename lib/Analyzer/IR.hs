@@ -13,7 +13,7 @@ module Analyzer.IR
   , deadCodeElimination
   ) where
 
-import qualified Data.Map as Map
+import qualified Data.Map()
 import Parser.Data.Ast
 import Data.List (nub)
 
@@ -124,8 +124,8 @@ collectGlobals stmts =
    VariableDeclaration name typ _ <- stmts,
    isGlobalScope stmts name]
   where
-    isGlobalScope stmts name = 
-      not $ any isFunctionLocal stmts
+    isGlobalScope stmtes name = 
+      not $ any isFunctionLocal stmtes
       where
         isFunctionLocal (FunctionDeclaration _ params _ _) = 
           name `elem` map fst params
@@ -147,9 +147,9 @@ collectFunctions stmts =
       }
 
     collectLocals :: [Statement] -> [(String, IRType)]
-    collectLocals stmts = 
+    collectLocals stmtes = 
       [(name, astTypeToIRType typ) | 
-       VariableDeclaration name typ _ <- stmts]
+       VariableDeclaration name typ _ <- stmtes]
 
 -------------------------------------------------------------------------------
 -- | Generate IR instructions from statements
@@ -298,34 +298,34 @@ deadCodeElimination ir = ir { irFunctions = map eliminateDeadCode (irFunctions i
     isLiveInst used (IRBinOp dest _ _ _) = dest `elem` used
     isLiveInst _ _ = False
 
--------------------------------------------------------------------------------
--- | Common subexpression elimination
--------------------------------------------------------------------------------
-commonSubexpressionElimination :: IR -> IR
-commonSubexpressionElimination ir = 
-  ir { irFunctions = map eliminateCSE (irFunctions ir) }
-  where
-    eliminateCSE (name, func) = 
-      (name, func { irBody = eliminateCommonSubexpr (irBody func) })
+-- -------------------------------------------------------------------------------
+-- -- | Common subexpression elimination
+-- -------------------------------------------------------------------------------
+-- commonSubexpressionElimination :: IR -> IR
+-- commonSubexpressionElimination ir = 
+--   ir { irFunctions = map eliminateCSE (irFunctions ir) }
+--   where
+--     eliminateCSE (name, func) = 
+--       (name, func { irBody = eliminateCommonSubexpr (irBody func) })
 
-    eliminateCommonSubexpr :: [IRInst] -> [IRInst]
-    eliminateCommonSubexpr insts =
-      let (exprs, optimized) = foldl findAndReplace (Map.empty, []) insts
-      in reverse optimized
+--     eliminateCommonSubexpr :: [IRInst] -> [IRInst]
+--     eliminateCommonSubexpr insts =
+--       let (exprs, optimized) = foldl findAndReplace (Map.empty, []) insts
+--       in reverse optimized
 
-    findAndReplace :: (Map.Map String String, [IRInst]) -> IRInst -> (Map.Map String String, [IRInst])
-    findAndReplace (exprs, acc) inst@(IRBinOp dest v1 op v2) =
-      let key = show v1 ++ show op ++ show v2
-      in case Map.lookup key exprs of
-           Just existing -> (exprs, IRMove dest (IRVar existing) : acc)
-           Nothing -> (Map.insert key dest exprs, inst : acc)
-    findAndReplace (exprs, acc) inst = (exprs, inst : acc)
+--     findAndReplace :: (Map.Map String String, [IRInst]) -> IRInst -> (Map.Map String String, [IRInst])
+--     findAndReplace (exprs, acc) inst@(IRBinOp dest v1 op v2) =
+--       let key = show v1 ++ show op ++ show v2
+--       in case Map.lookup key exprs of
+--            Just existing -> (exprs, IRMove dest (IRVar existing) : acc)
+--            Nothing -> (Map.insert key dest exprs, inst : acc)
+--     findAndReplace (exprs, acc) inst = (exprs, inst : acc)
 
 -------------------------------------------------------------------------------
 -- | Helper functions for generating unique names
 -------------------------------------------------------------------------------
-freshLabel :: String -> String
-freshLabel base = base ++ "_" ++ show (length base)
+-- freshLabel :: String -> String
+-- freshLabel base = base ++ "_" ++ show (length base)
 
 hash :: Show a => a -> Int
 hash = length . show
@@ -340,5 +340,5 @@ lastTemp insts = case last insts of
   IRUnOp dest _ _ -> dest
   _ -> error "No temporary variable found"
 
-getTempName :: Expression -> String
-getTempName expr = "_t" ++ show (length (show expr))
+-- getTempName :: Expression -> String
+-- getTempName expr = "_t" ++ show (length (show expr))
