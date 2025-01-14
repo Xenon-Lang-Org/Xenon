@@ -39,8 +39,7 @@ spec = do
         
         it "should change the value of a variable" $ do
             assignVar (envWithVar "foo") "foo" (iLit 12) `shouldSatisfy` varHasValue "foo" (iLit 12)
-            assignVar (envWithVar "foo") "bar" (iLit 12) `shouldSatisfy` isErr 
-
+            assignVar (envWithVar "foo") "bar" (iLit 12) `shouldSatisfy` isErr
 
         -- Types
 
@@ -60,24 +59,22 @@ spec = do
             evalExpr (envWith True [eVarI "foo" 0]) (BinaryOp Div (iLit 8) (Variable "foo"))
                 `shouldBe` Err "Division by zero"
 
-
-
 -- Helpers
 
 iLit :: Integer -> Expression
 iLit i = ELiteral $ IntLiteral i
 
 iI8 :: Type
-iI8 = PrimitiveType I8
+iI8 = PrimitiveType Immutable I8
 
 iI32 :: Type
-iI32 = PrimitiveType I32
+iI32 = PrimitiveType Mutable I32
 
 iU8 :: Type
-iU8 = PrimitiveType U8
+iU8 = PrimitiveType Immutable U8
 
 iU32 :: Type
-iU32 = PrimitiveType U32
+iU32 = PrimitiveType Immutable U32
 
 eVar :: String -> EnvVar
 eVar n = EVariable n iI32 (ELiteral $ IntLiteral 0)
@@ -94,14 +91,14 @@ eFuncArgs = [("a", iI32), ("b", iI32)]
 eFunc :: String -> EnvVar
 eFunc n = EFunction n  eFuncArgs iI32 eFuncBody
 
-tEnum :: String -> TypeDefinition
-tEnum n = EnumDeclaration n ["RED", "GREEN", "BLUE"]
+tEnum :: Type
+tEnum = EnumType Immutable (EnumT ["RED", "GREEN", "BLUE"])
 
 sType :: String -> Statement
-sType n = TypeDeclaration $ tEnum n
+sType n = TypeDeclaration n tEnum
 
 eType :: String -> EnvVar
-eType n = EType n (tEnum n)
+eType n = EType n tEnum
 
 envWithType :: String -> Env
 envWithType n = envWith True [eType n]
