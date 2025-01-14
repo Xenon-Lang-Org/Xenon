@@ -8,22 +8,23 @@
 module Analyzer.SemanticAnalyzer
   ( analyze
   , AnalysisError(..)
+  , AnalysisResult(..)
   , AnalysisContext(..)
-  , analyzeExpr
   ) where
 
 import qualified Data.Map as Map
-import Data.Maybe (isJust)
 import Parser.Data.Ast
+import Analyzer.IR
 
 -------------------------------------------------------------------------------
 -- | Analysis context tracks variables, types, and function definitions
+--
 -------------------------------------------------------------------------------
 data AnalysisContext = AnalysisContext 
   { variables :: Map.Map VariableName (Type, Bool)  -- Type and initialization status
-  , customTypes :: Map.Map String Type              -- User-defined types
+  , customTypes :: Map.Map String Type              -- User types
   , functions :: Map.Map FunctionName ([Field], Type) -- Function signatures
-  , inLoop :: Bool                                  -- Loop context tracking
+  , inLoop :: Bool                                  -- Loop checker
   } deriving (Show, Eq)
 
 -------------------------------------------------------------------------------
@@ -33,15 +34,24 @@ data AnalysisError
   = UndefinedVariable String
   | UndefinedType String
   | UndefinedFunction String
-  | TypeMismatch { expected :: Type, found :: Type }
+  | TypeMismatch Type Type
   | MutabilityError String
   | UninitializedVariable String
-  | InvalidReturnType { expected :: Type, found :: Type }
+  | InvalidReturnType Type Type
   | MissingReturnStatement FunctionName
   | InvalidArrayAccess
   | InvalidPointerOperation String
   | CustomError String
   deriving (Show, Eq)
+
+-------------------------------------------------------------------------------
+-- | Result of semantic analysis and IR generation
+-- |  The final AST to be used for
+-------------------------------------------------------------------------------
+data AnalysisResult = AnalysisResult 
+  { finalAst :: Program
+  , irCode :: IR
+  } deriving (Show, Eq)
 
 -------------------------------------------------------------------------------
 -- | Empty analysis context
@@ -56,12 +66,19 @@ emptyContext = AnalysisContext
 
 -------------------------------------------------------------------------------
 -- | Main entry point for semantic analysis
+-- | This function will analyze the program and return either the "finalAst"
+-- | and IR code or a list of errors
 -------------------------------------------------------------------------------
-analyze :: Program -> Either [AnalysisError] Program
-analyze (Program stmts) = do
-  (_, errors) <- analyzeStatements emptyContext stmts
+analyze :: Program -> Either [AnalysisError] AnalysisResult
+analyze prog@(Program stmts) = do
+  (finalCtx, errors) <- analyzeStatements emptyContext stmts
   if null errors
-    then Right (Program stmts)
+    then do
+      let ir = optimizeIR $ astToIR prog
+      Right AnalysisResult 
+        { finalAst = prog
+        , irCode = ir
+        }
     else Left errors
 
 -------------------------------------------------------------------------------
@@ -179,6 +196,7 @@ analyzeFuncCall ctx name args = do
           if all (uncurry typeMatches) (zip paramTypes argTypes)
             then Right (ctx, [])
             else Left [TypeMismatch (head paramTypes) (head argTypes)]
+
 -------------------------------------------------------------------------------
 -- | Analyze variable reassignment
 -- Checks if the variable is defined and if the new value has the same type
@@ -192,6 +210,7 @@ analyzeVarReassign ctx name expr =
       if typeMatches typ exprType
         then Right (ctx, [])
         else Left [TypeMismatch typ exprType]
+
 -------------------------------------------------------------------------------
 -- | Analyze expressions
 -------------------------------------------------------------------------------
