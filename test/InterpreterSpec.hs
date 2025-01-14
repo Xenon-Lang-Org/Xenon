@@ -51,6 +51,18 @@ spec = do
             castExpr (env True) (iLit (-1)) iI32 `shouldSatisfy` isExpr (iLit (-1))
             castExpr (env True) (iLit (-1)) iU32 `shouldSatisfy` isExpr (iLit 4294967295)
 
+        it "should return a default value for the given type" $ do
+            defaultExpr (env True) (PrimitiveType Immutable I32) `shouldBe` Ok (iLit 0)
+            defaultExpr (env True) (PrimitiveType Immutable U8) `shouldBe` Ok (iLit 0)
+            defaultExpr (env True) (PrimitiveType Immutable F32) `shouldBe` Ok (fLit 0.0)
+            defaultExpr (env True) (PrimitiveType Immutable F64) `shouldBe` Ok (fLit 0.0)
+            defaultExpr (envWith True [EType "MyF" fF32]) (CustomType Immutable "MyF")
+                `shouldBe` Ok (fLit 0.0)
+            defaultExpr (env True) (ArrayType Immutable (Array 0 iI32))
+                `shouldSatisfy` isErr
+
+        -- Expressions
+
         it "should evaluate the variable expression" $ do
             evalExpr (envWith True [eVarI "foo" 3]) (Variable "foo")
                 `shouldSatisfy` mEvalExprIs (iLit 3)
@@ -96,6 +108,9 @@ iI8 = PrimitiveType Immutable I8
 
 iI32 :: Type
 iI32 = PrimitiveType Mutable I32
+
+fF32 :: Type
+fF32 = PrimitiveType Mutable F32
 
 iU8 :: Type
 iU8 = PrimitiveType Immutable U8
@@ -153,12 +168,3 @@ isExpr v (Ok v') = v == v'
 mEvalExprIs :: Expression -> Result String (Env, Expression) -> Bool
 mEvalExprIs _ (Err _) = False
 mEvalExprIs v (Ok (_, v')) = v == v'
-
-mEvalEnvIs :: Env -> Result String (Env, Expression) -> Bool
-mEvalEnvIs _ (Err _) = False
-mEvalEnvIs e (Ok (e', _)) = e == e'
-
-envHasVar :: Env -> String -> Expression -> Bool
-envHasVar e n v = case fromEnv e n of
-    Ok (EVariable _ _ v') -> v == v'
-    _ -> False
