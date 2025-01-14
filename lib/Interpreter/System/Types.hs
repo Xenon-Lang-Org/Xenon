@@ -2,7 +2,8 @@ module Interpreter.System.Types
     (
         castExpr,
         toLiteralExpr,
-        toBool
+        toBool,
+        defaultExpr
     )
 where
 
@@ -61,3 +62,6 @@ deduceType e (CustomType _ n) = case fromEnv e n of
     Ok _ -> Err $ n ++ " is not a type"
     Err m -> Err m
 deduceType _ t = Ok t
+
+defaultExpr :: Env -> Type -> Result String Expression
+defaultExpr e = castExpr e (ELiteral $ IntLiteral 0)

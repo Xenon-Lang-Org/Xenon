@@ -95,14 +95,20 @@ pairR x y = (y, x)
 zeroExpr :: Expression
 zeroExpr = ELiteral $ IntLiteral 0
 
-declare :: Env -> Statement -> Result String Env
-declare e (FunctionDeclaration name p t body) =
-    pushFunction e (FunctionDeclaration name p t body)
-declare e (VariableDeclaration name t (Just expr)) = case evalExpr e expr of
-    Ok (e', expr') -> case castExpr e expr' t of
-        Ok expr'' -> pushVariable e' (VariableDeclaration name t (Just expr''))
+declareVariable :: Env -> String -> Type -> Maybe Expression -> Result String Env
+declareVariable e n t (Just v) = case evalExpr e v of
+    Ok (e', v') -> case castExpr e v' t of
+        Ok v'' -> pushVariable e' (VariableDeclaration n t (Just v''))
         Err msg -> Err msg
     Err msg -> Err msg
+declareVariable e n t Nothing = case defaultExpr e t of
+    Ok v -> pushVariable e (VariableDeclaration n t (Just v))
+    Err msg -> Err msg
+
+declare :: Env -> Statement -> Result String Env
+declare e (FunctionDeclaration n p t body) =
+    pushFunction e (FunctionDeclaration n p t body)
+declare e (VariableDeclaration n t v) = declareVariable e n t v
 declare e (TypeDeclaration m t) = pushType e (TypeDeclaration m t)
 declare _ _ = Err "Invalid declaration"
 
