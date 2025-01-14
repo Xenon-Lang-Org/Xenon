@@ -8,7 +8,7 @@ on:
 
 jobs:
   docker:
-    uses: Xenon-Lang-Org/Glados-image/.github/docker/docker-build.yml@main
+    uses: Xenon-Lang-Org/Glados-image/.github/workflows/docker-build.yml@main
     with:
       repository: ${{ github.repository }}
       ref: ${{ github.ref }}
