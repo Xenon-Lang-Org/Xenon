@@ -3,6 +3,10 @@
 
 module Parser.System.Parser
   ( parseProgram,
+    parseFileAndPrintErrors,
+    unwrapErrors,
+    parseFile,
+    parseString,
     parseExpression
   )
 where
@@ -10,12 +14,14 @@ where
 import Control.Monad.Combinators.Expr
 import Data.Char (isUpper)
 import Data.Maybe (isJust)
+import Data.Void (Void)
 import Data.Word (Word64)
 import Parser.Data.Ast
 import Parser.System.Lexer (Token (..), TokenStream, TokenType (..))
 import qualified Parser.System.Lexer as Lexer
 import Text.Megaparsec hiding (Token)
 import qualified Text.Megaparsec as MP
+import Utils.Data.Result (Result (Err, Ok))
 
 data ParsingError
   = UnexpectedToken TokenType MP.SourcePos
@@ -414,30 +420,44 @@ parseIntLiteral = do
     isInt (TIntLit _) = True
     isInt _ = False
 
-examplemain :: IO ()
-examplemain = do
-  let testInputs =
-        [ "x = 5;",
-          "let x: i32 = 5;",
-          "let alexikiwi: Kiwi = 42;",
-          "fn add(a: i32, b: i32) -> i32 { return a + b; }",
-          "while (x < 10) { x = x + 1; }",
-          "if (x == 0) { x = 1; } else { x = 0; }",
-          "type Point = { x: i32, y: i32 };",
-          "type IntArray = [10: i32];",
-          "type Color = <Red, Green, Blue>;",
-          "type Ptr = *mut i32;"
-        ]
-  mapM_ runTest testInputs
+-------------------------------------------------------------------------------
+-- Parse a file as to program
+-------------------------------------------------------------------------------
+
+runXLexer :: String -> String -> Result (ParseErrorBundle String Void) [Token]
+runXLexer input file = eitherToResult $ runParser Lexer.tokens file input
   where
-    runTest input = do
-      putStrLn $ "Input: " ++ input
-      case runLexer input of
-        Left err -> putStrLn $ errorBundlePretty err
-        Right tokens -> case runParser parseProgram "" (Lexer.TokenStream tokens input) of
-          Left err -> do
-            putStrLn $ "tokens: " ++ show tokens
-            putStrLn $ errorBundlePretty err
-          Right result -> putStrLn $ "Parsed successfully: " ++ show result
-      putStrLn ""
-    runLexer = runParser Lexer.tokens "LEXER"
+    eitherToResult (Left err) = Err err
+    eitherToResult (Right tokenss) = Ok tokenss
+
+runXParser :: String -> String -> [Token] -> Result (ParseErrorBundle TokenStream ParsingError) Program
+runXParser filename input tokenss = eitherToResult $ runParser parseProgram filename (Lexer.TokenStream tokenss input)
+  where
+    eitherToResult (Left err) = Err err
+    eitherToResult (Right result) = Ok result
+
+parseString :: String -> String -> (Result (ParseErrorBundle String Void)) (Result (ParseErrorBundle TokenStream ParsingError) Program)
+parseString filename input = do
+  tokenss <- runXLexer input filename
+  Ok (runXParser filename input tokenss) -- Return Ok because Result is a Monad and both result error types differ
+
+parseFile :: FilePath -> IO (Result (ParseErrorBundle String Void) (Result (ParseErrorBundle TokenStream ParsingError) Program))
+parseFile filename = do
+  input <- readFile filename
+  return $ parseString filename input
+
+-- unwrap the results and print the error messages of ParseErrorBundle
+unwrapErrors :: (VisualStream s, TraversableStream s, ShowErrorComponent e) => Result (ParseErrorBundle s e) c -> IO (Result () c)
+unwrapErrors (Err err) = do
+  putStrLn $ errorBundlePretty err
+  return $ Err ()
+unwrapErrors (Ok result) = return $ Ok result
+
+parseFileAndPrintErrors :: FilePath -> IO (Result () Program)
+parseFileAndPrintErrors filename = do
+  result <- parseFile filename
+  case result of
+    Err err -> do
+      putStrLn $ errorBundlePretty err
+      return $ Err ()
+    Ok result' -> unwrapErrors result'

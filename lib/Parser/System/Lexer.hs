@@ -340,7 +340,6 @@ tokenParser =
       pNotEq,
       pLessEq,
       pGreaterEq,
-      pBitAnd,
       pEqSign,
       pOpenParen,
       pCloseParen,

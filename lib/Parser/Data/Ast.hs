@@ -34,7 +34,7 @@ type Body = [Statement]
 data Statement
   = VariableDeclaration VariableName Type (Maybe Expression) -- let <name>: <type> = <expression>
   | FunctionDeclaration FunctionName [Field] Type Body -- fn <name>(<args>) -> <type> { <body> }
-  | WhileLoop Expression Body -- while (<condition>) { <body> }
+  | WhileLoop Expression Body -- while <condition> { <body> }
   | If Expression Body (Maybe Body) -- if <cond> { <then_body> } [else { <else_body> }] NOTE: 'elif <cond> { }' is actually else '{ if <cond> { <then_body> } }'
   | TypeDeclaration String Type -- type <name> = <typedef>
   | ReturnStatement Expression -- return <expression>
