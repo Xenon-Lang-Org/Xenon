@@ -1,16 +1,22 @@
 module Analyzer.IR
-  ( IR(..)
+  ( -- * Types
+    IR(..)
   , IRFunction(..)
   , IRInst(..)
   , IRType(..)
   , IRValue(..)
+    -- * Core Functions
   , astToIR
   , optimizeIR
+    -- * Optimization Functions
+  , constantFolding
+  , deadCodeElimination
   ) where
 
 import qualified Data.Map as Map
 import Parser.Data.Ast
 import Data.List (nub)
+
 -------------------------------------------------------------------------------
 -- | Complete IR program representation
 -------------------------------------------------------------------------------
@@ -188,6 +194,7 @@ generateInstructions = concatMap convertStatement
       in exprInsts ++ [IRReturn (Just (IRTemp (lastTemp exprInsts)))]
     
     convertStatement _ = []
+
 -------------------------------------------------------------------------------
 -- | Generate IR instructions from expressions
 -------------------------------------------------------------------------------
