@@ -146,8 +146,8 @@ toInstruction locMap gMap funcMap (StandaloneFunctionCall funcName args) =
     ++ [ModuleCall (lookupFunc funcMap funcName)]
 
 -- VariableReAssignment
-toInstruction locMap gMap _ (VariableReAssignment name expr) =
-  let rhsInstrs = toInstructionFromExpr locMap gMap [] expr
+toInstruction locMap gMap funcMap (VariableReAssignment name expr) =
+  let rhsInstrs = toInstructionFromExpr locMap gMap funcMap expr
   in case lookupVar locMap name of
        Just (_, localIdx) -> rhsInstrs ++ [ModuleLocalSet localIdx]
        Nothing ->
