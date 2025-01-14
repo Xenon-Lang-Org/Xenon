@@ -34,6 +34,7 @@ run_test examples/while.xn "While" examples/compiled/while.wasm
 run_test examples/is_prime.xn "Is Prime" examples/compiled/is_prime.wasm
 run_test examples/is_prime_global.xn "Is Prime Global" examples/compiled/is_prime_global.wasm
 run_test examples/my_pow.xn "My Pow" examples/compiled/my_pow.wasm
+run_test examples/main.xn "Main" examples/compiled/main.wasm
 
 rm temp_test.wasm
 

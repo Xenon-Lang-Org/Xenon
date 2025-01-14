@@ -11,6 +11,7 @@ compile filename output = do
     parseResult <- parseFileAndPrintErrors filename
     case parseResult of
         Ok ast -> do
+            putStrLn (show ast)
             case analyze ast of
                 Right result -> do
                     let filledModule = fillWASMModuleFromAST (finalAst result)
