@@ -9,14 +9,14 @@ run_test() {
 
     echo -e "\033[34mRunning Test: $test_description\033[0m"
 
-    ./run-compiler $input_file > /dev/null
+    ./run-compiler $input_file -o temp_test.wasm > /dev/null
 
     if [ $? -ne 0 ]; then
         echo -e "\033[31mTest Failed: $test_description\033[0m"
         return
     fi
 
-    if ! diff $expected_file result.wasm; then
+    if ! diff $expected_file temp_test.wasm; then
         echo -e "\033[31mTest Failed: $test_description\033[0m"
         return
     else 
@@ -34,4 +34,6 @@ run_test examples/while.xn "While" examples/compiled/while.wasm
 run_test examples/is_prime.xn "Is Prime" examples/compiled/is_prime.wasm
 run_test examples/is_prime_global.xn "Is Prime Global" examples/compiled/is_prime_global.wasm
 run_test examples/my_pow.xn "My Pow" examples/compiled/my_pow.wasm
+
+rm temp_test.wasm
 
