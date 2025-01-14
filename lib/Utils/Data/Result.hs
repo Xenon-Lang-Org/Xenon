@@ -8,7 +8,8 @@ module Utils.Data.Result
     isOk,
     isErr,
     both,
-    mapBoth
+    mapBoth,
+    allOk
   )
 where
 import Control.Applicative (Alternative (empty), (<|>))
@@ -158,3 +159,11 @@ both (_, Err e) = Err e
 -- | Combines two 'Result's into a single 'Result' with a tuple of the values.
 mapBoth :: (a -> Result e b) -> (a, a) -> Result e (b, b)
 mapBoth f (x, y) = both (f x, f y)
+
+-- | Map
+allOk :: [Result e a] -> Result e [a]
+allOk [] = Ok []
+allOk ((Err m):_) = Err m
+allOk ((Ok x): xs) = case allOk xs of
+  Ok xs' -> Ok $ x : xs'
+  Err m -> Err m

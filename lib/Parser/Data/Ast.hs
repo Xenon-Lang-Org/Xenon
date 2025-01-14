@@ -54,7 +54,15 @@ data Type
   | ArrayType !Mutablility !Array -- [<size>: <type>]
   | EnumType !Mutablility !EnumT -- <variant1, variant2, ...>
   | CustomType !Mutablility !String -- <name> (Must start with a capital letter)
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show Type where
+  show (PrimitiveType m p) = show m ++ " " ++ show p
+  show (PointerType m t) = show m ++ " " ++ show t
+  show (StructType m s) = show m ++ " " ++ show s
+  show (ArrayType m a) = show m ++ " " ++ show a
+  show (EnumType m e) = show m ++ " " ++ show e
+  show (CustomType m n) = show m ++ " " ++ show n
 
 data Primitive
   = I8

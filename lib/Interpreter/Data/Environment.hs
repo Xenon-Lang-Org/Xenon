@@ -15,17 +15,29 @@ module Interpreter.Data.Environment
         pushVariable,
         pushFunction,
         pushType,
-        assignVar
+        assignVar,
+        envAll,
+        envAllNames
     )
 where
 
 import Parser.Data.Ast
 import Utils.Data.Result
+import Data.List(intercalate)
 
 data EnvVar = EVariable String Type Expression
             | EFunction String [Field] Type Body
             | EType String Type
-            deriving (Show, Eq)
+            deriving (Eq)
+
+showField :: Field -> String
+showField (n, t) = n ++ ": " ++ show t
+
+instance Show EnvVar where
+    show (EVariable n t v) = "[ variable ] " ++ n ++ ": " ++ show t ++ " = " ++ show v
+    show (EFunction n a t _) =
+        "[ function ] " ++ n ++ " (" ++ intercalate ", " (map showField a) ++ ") -> " ++ show t
+    show (EType n t) = "[   type   ] " ++ n ++ " -> " ++ show t
 
 type Scope = [EnvVar]
 
@@ -78,6 +90,12 @@ fromScope :: Scope -> String -> Result String EnvVar
 fromScope [] name = Err $ name ++ " is undefined"
 fromScope (x:xs) name | varName x == name = Ok x
                       | otherwise = fromScope xs name
+
+envAll :: Env -> Scope
+envAll (Env g l _) = g ++ l
+
+envAllNames :: Env -> [String]
+envAllNames = map varName . envAll
 
 fromEnv :: Env -> String -> Result String EnvVar
 fromEnv (Env g l _) name = case fromScope l name of
