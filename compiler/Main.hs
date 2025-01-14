@@ -4,15 +4,19 @@ import Compiler.System.FillModuleData
 import Compiler.System.WriteWAT
 import Utils.Data.Result
 import System.Environment (getArgs)
+import Analyzer.SemanticAnalyzer
 
 compile :: String -> String -> IO ()
 compile filename output = do
-    result <- parseFileAndPrintErrors filename
-    case result of
+    parseResult <- parseFileAndPrintErrors filename
+    case parseResult of
         Ok ast -> do
-            let filledModule = fillWASMModuleFromAST ast
-            printModule filledModule
-            writeWasmModule output filledModule
+            case analyze ast of
+                Right result -> do
+                    let filledModule = fillWASMModuleFromAST (finalAst result)
+                    printModule filledModule
+                    writeWasmModule output filledModule
+                Left analyzeErr -> error $ show analyzeErr
         Err err -> print err
 
 checkFileName :: String -> Bool

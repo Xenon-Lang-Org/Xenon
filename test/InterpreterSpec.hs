@@ -2,7 +2,6 @@ module InterpreterSpec (main, spec) where
 
 import Test.Hspec
 import Interpreter.Data.Environment
-import Interpreter.System.Operation
 import Interpreter.System.Types
 import Interpreter.System.Evaluator
 import Utils.Data.Result
