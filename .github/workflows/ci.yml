@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: xenon-lang-org/xenon
+  IMAGE_NAME: xenon-lang-org/glados-image
 
 jobs:
   build-and-test:
@@ -47,7 +47,15 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Main Repository
+        uses: actions/checkout@v3
+
+      - name: Checkout CI/CD Repository
+        uses: actions/checkout@v3
+        with:
+          repository: xenon-lang-org/glados-image
+          path: ci-cd
+          token: ${{ secrets.PAT }}
       
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
@@ -60,10 +68,21 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
+          file: ci-cd/docker/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Build and push Dev image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ci-cd/docker/Dockerfile.dev
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-dev:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-dev:${{ github.sha }}
 
   deploy-staging:
     needs: docker
