@@ -25,42 +25,53 @@ Xenon is a new programming language designed for simplicity and efficiency. This
     cd Xenon
     ```
 
-2. Build the project:
+2. Build the project using the makefile:
     ```sh
-    stack build
+    make
+    ```
+
+Alternatively, you may build the compiler, vm or interpreter separately.
+    ```sh
+    make xcc
+    make xrun
+    make xin
     ```
 
 ### Usage
 
 To compile a Xenon source file to WebAssembly:
 ```sh
-./run-compiler <source-file.xn>
+./xcc <source-file.xn>
 ```
 To compile a Xenon source file to a specified output file:
 ```sh
-./run-compiler <source-file.xn> -o <output-file.wasm>
+./xcc <source-file.xn> -o <output-file.wasm>
 ```
 
 To run the interpreter:
 ```sh
 ./xin
 ```
-To run a Xenon source file using the interpreter:
+You may add sources files to the arguments to load them beforehand:
 ```sh
-./xin <source-file.xn>
+./xin <file1> <file2> ...
 ```
 
 ### Examples
-You can find example Xenon programs in the examples directory.
+You can find example Xenon programs in the [examples](examples) directory.
 
 ### Running Tests
+To run all tests:
+```sh
+make tests
+```
 To run the unit tests:
 ```sh
-stack test
+make unit_tests
 ```
 To run the functional tests:
 ```sh
-./test/tester.sh
+make func_tests
 ```
 
 ### Documentation
@@ -72,4 +83,3 @@ To run the functional tests:
 - [Lucien Pineau](https://github.com/mathematisse)
 - [Alexis Hachemi](https://github.com/alexishachemi)
 - [Karim Mohamed](https://github.com/Kuawhrime)
-
