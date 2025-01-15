@@ -1,4 +1,3 @@
-import System.Exit (ExitCode (ExitFailure), exitWith)
 import System.Environment (getArgs)
 import Interpreter.Data.Environment
 import Interpreter.System.Evaluator
@@ -8,6 +7,8 @@ import Interpreter.System.Module
 import Interpreter.System.Command (runCommand)
 import System.Console.Haskeline
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad (void)
+import Utils.System.Print
 
 isFnCall :: Body -> Bool
 isFnCall [StandaloneFunctionCall _ _] = True
@@ -24,17 +25,8 @@ evalProgExprStr e raw = case parseProg raw of
             Err m -> Err m
         Err m -> Err m
 
-printFailure :: String -> IO ()
-printFailure s = do
-    putStrLn s
-    exitWith $ ExitFailure 84
-
 terminateBy :: String -> Char -> String
 terminateBy str end = if last str == end then str else str ++ [end]
-
-maybePrint :: Show a => Maybe a -> IO ()
-maybePrint Nothing = return ()
-maybePrint (Just x) = print x
 
 processLine :: Env -> String -> IO Env
 processLine e ['/'] = putStrLn "Invalid command" >> return e
@@ -63,10 +55,37 @@ interpret md = do
     res <- loadModules (env True) md
     case res of
         Err m -> printFailure m
-        Ok e -> runInputT defaultSettings (loop e)
+        Ok e -> do
+            putStrLn "Xenon Interpreter 1.0.0\nType '/help' for a list of commands."
+            runInputT defaultSettings (loop e)
+
+execute :: String -> IO ()
+execute fp = do
+    raw <- readFile fp
+    case parseProg raw of
+        Err m -> putStrLn m
+        Ok (Program b) -> void $ evalBodyPrint (env True) b
+
+getExecPath :: [String] -> Result String (Maybe String)
+getExecPath [] = Ok Nothing
+getExecPath ["-e"] = Err "No file was given"
+getExecPath ("-e":f:_) = Ok $ Just f
+getExecPath (_:xs) = getExecPath xs
+
+isHelp :: [String] -> Bool
+isHelp [] = False
+isHelp ("-h":_) = True
+isHelp (_:xs) = isHelp xs
+
+helpMsg :: String
+helpMsg = "Usage: xin [FILE] [FILE] ...\n\n\t-e FILE\t\tExecute the Xenon file."
 
 main :: IO ()
 main = do
     args <- getArgs
-    putStrLn "Xenon Interpreter 1.0.0\nType '/help' for a list of commands."
-    interpret args
+    if isHelp args then putStrLn helpMsg else
+        case getExecPath args of
+            Err m -> printFailure m
+            Ok (Just fp) -> if length args == 2 then execute fp else
+                printFailure "Invalid arguments"
+            _ -> interpret args

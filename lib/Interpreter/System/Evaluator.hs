@@ -4,6 +4,7 @@ module Interpreter.System.Evaluator
         evalExpr,
         evalStatement,
         evalBody,
+        evalBodyPrint,
         evalProg
     )
 where
@@ -15,6 +16,7 @@ import Interpreter.System.Operation
 import Interpreter.System.Types
 import Data.Foldable()
 import Data.Maybe (fromMaybe)
+import Utils.System.Print
 
 type Operands = (Expression, Expression)
 type Eval = (Env, Expression)
@@ -131,6 +133,15 @@ evalBody e (x:xs) = case evalStatement e x of
     Ok (e', Nothing) -> evalBody e' xs
     Ok r -> Ok r
     Err msg -> Err msg
+
+evalBodyPrint :: Env -> Body -> IO Env
+evalBodyPrint e [] = return e
+evalBodyPrint e (StandaloneFunctionCall n a:xs) = case callFunc e n a of
+    Ok (e', r) -> print r >> evalBodyPrint e' xs
+    Err m -> printFailure m >> return e
+evalBodyPrint e (x:xs) = case evalStatement e x of
+    Ok (e', _) -> evalBodyPrint e' xs
+    Err m -> printFailure m >> return e
 
 ensureEval :: Result String MEval -> Result String Eval
 ensureEval (Ok (e, Nothing)) = Ok (e, zeroExpr)
