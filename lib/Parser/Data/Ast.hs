@@ -143,4 +143,7 @@ data Array = Array !Int !Type -- [<size>: <type>]
   deriving (Show, Eq)
 
 newtype EnumT = EnumT [String] -- <variant1, variant2, ...>
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show EnumT where
+  show (EnumT v) = "Enum { " ++ intercalate ", " v ++ " }"

@@ -16,26 +16,55 @@ spec = do
 
         -- Environment
 
+        it "should compare two EnvVars" $ do
+            eVar "foo" `shouldBe` eVar "foo"
+            eVar "foo" `shouldNotBe` eVar "bar"
+            eFunc "foo" `shouldBe` eFunc "foo"
+
+        it "should show an EnvVar" $ do
+            show (eVar "foo") `shouldBe`  "[ variable ] foo: Mutable I32 = 0"
+            show (eFunc "foo") `shouldBe` "[ function ] foo (a: Mutable I32, b: Mutable I32) -> Mutable I32"
+            show (eType "foo") `shouldBe` "[   type   ] foo -> Immutable Enum { RED, GREEN, BLUE }"
+
         it "should change the Env type" $ do
             setLocal (Env [] [] True) `shouldBe` Env [] [] False
             setGlobal (Env [] [] False) `shouldBe` Env [] [] True
+            setIsGlobal False (Env [] [] False) `shouldBe` Env [] [] False
+            setIsGlobal True (Env [] [] False) `shouldBe` Env [] [] True
 
         it "should set the Scope of the Env" $ do
             setLocalScope (env True) [eVar "v", eFunc "f"] `shouldBe` Env [] [eVar "v", eFunc "f"] True
             setGlobalScope (env True) [eVar "v", eFunc "f"] `shouldBe` Env [eVar "v", eFunc "f"] [] True
+        
+        it "should create an Env from a Scope" $ do
+            fromLocal True [eVar "foo"] `shouldBe` Env [] [eVar "foo"] True
+            fromGlobal False [eVar "foo"] `shouldBe` Env [eVar "foo"] [] False
+
+        it "should get elements from all scopes of an Env" $ do
+            envAll (envWithStuff True) `shouldBe` [eFunc "foo", eType "bar", eVar "baz"]
+            envAllNames (envWithStuff True) `shouldBe` ["foo", "bar", "baz"]
 
         it "should get an EnvVar from the Env" $ do
             fromEnv (envWithVar "foo") "foo" `shouldBe` Ok (eVar "foo")
             fromEnv (envWithVar "foo") "bar" `shouldBe` Err "bar is undefined"
+            fromEnv (envWithStuff True) "baz" `shouldBe` Ok (eVar "baz")
 
         it "should add an EnvVar to the Env" $ do
             pushVariable (env True) (VariableDeclaration "foo" iI32 (Just $ iLit 0)) 
                 `shouldBe` Ok (envWithVar "foo")
+            pushVariable (env True) (VariableDeclaration "foo" iI32 Nothing) 
+                `shouldSatisfy` isErr
+            pushVariable (envWithVar "foo") (VariableDeclaration "foo" iI32 (Just $ iLit 0)) 
+                `shouldSatisfy` isErr
             pushFunction (env True) (FunctionDeclaration "bar" eFuncArgs iI32 eFuncBody)
                 `shouldBe` Ok (envWithFunc "bar")
+            pushFunction (envWithFunc "bar") (FunctionDeclaration "bar" eFuncArgs iI32 eFuncBody)
+                `shouldSatisfy` isErr
             pushType (env True) (sType "baz")
                 `shouldBe` Ok (envWithType "baz")
-        
+            pushType (envWithType "baz") (sType "baz")
+                `shouldSatisfy` isErr
+
         it "should change the value of a variable" $ do
             assignVar (envWithVar "foo") "foo" (iLit 12) `shouldSatisfy` varHasValue "foo" (iLit 12)
             assignVar (envWithVar "foo") "bar" (iLit 12) `shouldSatisfy` isErr
@@ -93,6 +122,10 @@ spec = do
         it "should evaluate the parenthesis expression" $ do
             evalExpr (envWith True [eVarI "baz" 13]) (Parenthesis (Variable "baz"))
                 `shouldSatisfy` mEvalExprIs (iLit 13)
+
+        -- Statements
+
+
 
 -- Helpers
 
@@ -153,6 +186,9 @@ envWithFunc n = envWith True [eFunc n]
 envWith :: Bool -> Scope -> Env
 envWith True s = Env s [] True
 envWith False s = Env [] s False
+
+envWithStuff :: Bool -> Env
+envWithStuff ig = Env [eFunc "foo", eType "bar"] [eVar "baz"] ig
 
 varHasValue :: String -> Expression -> Result String Env -> Bool
 varHasValue n v (Ok e) = case fromEnv e n of
