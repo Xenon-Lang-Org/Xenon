@@ -31,4 +31,6 @@ extra-deps:
 - ansi-terminal-types-1.1@sha256:135f6a381afa19d53d0a3fe40b6dd47e6666c538b09e4300fbb1438759df3248,1462
 - colour-2.3.6@sha256:ebdcbf15023958838a527e381ab3c3b1e99ed12d1b25efeb7feaa4ad8c37664a,2378
 
+- haskeline-0.8.2.1
+
 notify-if-nix-on-path: false

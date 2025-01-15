@@ -2,7 +2,7 @@ name:                xenon
 version:             0.1.0.0
 github:              "Xenon-Lang-Org/Xenon"
 license:             BSD-3-Clause
-author:              "Leo Wehrle, Théodore Magna, Lucien Pineau, Alexis Halchemi, Karim Mohammed"
+author:              "Leo Wehrle, Théodore Magna, Lucien Pineau, Alexis Halchemy 🧪, Karim Mohammed"
 maintainer:          "some-authors@epitech.eu"
 copyright:           "2024 all-authors"
 
@@ -19,6 +19,7 @@ dependencies:
 - bytestring
 - binary
 - parser-combinators >=1.3.0
+- haskeline
 
 ghc-options:
 - -Wall

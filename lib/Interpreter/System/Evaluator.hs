@@ -1,5 +1,6 @@
 module Interpreter.System.Evaluator
     (
+        MEval,
         evalExpr,
         evalStatement,
         evalBody,
