@@ -165,4 +165,11 @@ packages:
       size: 1183
   original:
     hackage: colour-2.3.6@sha256:ebdcbf15023958838a527e381ab3c3b1e99ed12d1b25efeb7feaa4ad8c37664a,2378
+- completed:
+    hackage: haskeline-0.8.2.1@sha256:40096f75591b5391aa99c5ed87148da0e9288ca4be302dd9e5c4326f814089ba,6117
+    pantry-tree:
+      sha256: a0dc4c2ccf289c20f2da94b660286b9297f9b3dcaccad1040c0a2eaf1c6b6624
+      size: 2955
+  original:
+    hackage: haskeline-0.8.2.1
 snapshots: []
