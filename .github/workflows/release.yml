@@ -1,0 +1,44 @@
+name: Make Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up GHC
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.6.6'
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Build
+        run: stack build
+
+      - name: Package Binary
+        run: |
+          mkdir -p release/
+          cp $(stack path --local-install-root)/bin/lisp-exe release/glados
+          tar czf glados-${{ github.ref_name }}.tar.gz release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            glados-${{ github.ref_name }}.tar.gz
+          body: |
+            GLaDOS Release ${{ github.ref_name }}
+            
+            ## How to Install
+            ```bash
+            tar xzf glados-${{ github.ref_name }}.tar.gz
+            ./release/glados
+            ```

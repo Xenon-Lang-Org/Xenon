@@ -8,4 +8,5 @@ result-*
 run-lisp
 *.o
 *.hi
-*.wasm
+.bashrc
+result.wasm

@@ -23,8 +23,19 @@ source-repository head
 
 library
   exposed-modules:
+      Analyzer.IR
+      Analyzer.SemanticAnalyzer
+      Compiler.Data.ModuleData
+      Compiler.System.EncodeNumbers
+      Compiler.System.FillModuleData
+      Compiler.System.WriteWASM
+      Compiler.System.WriteWAT
+      Interpreter.Data.Environment
+      Interpreter.System.Evaluator
+      Interpreter.System.Operation
+      Interpreter.System.Types
       Parser.Data.Ast
-      Parser.Data.ParserS
+      Parser.System.Lexer
       Parser.System.Parser
       Utils.Control.Convert
       Utils.Data.Result
@@ -38,6 +49,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , binary
     , bytestring
     , containers
     , megaparsec
@@ -48,7 +60,6 @@ library
 executable compiler
   main-is: Main.hs
   other-modules:
-      ModuleData
       Paths_xenon
   autogen-modules:
       Paths_xenon
@@ -57,6 +68,27 @@ executable compiler
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , binary
+    , bytestring
+    , containers
+    , megaparsec
+    , parser-combinators >=1.3.0
+    , text
+    , xenon
+  default-language: Haskell2010
+
+executable interpreter
+  main-is: Main.hs
+  other-modules:
+      Paths_xenon
+  autogen-modules:
+      Paths_xenon
+  hs-source-dirs:
+      interpreter
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , binary
     , bytestring
     , containers
     , megaparsec
@@ -76,6 +108,7 @@ executable wasm-interpreter
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , binary
     , bytestring
     , containers
     , megaparsec
@@ -88,8 +121,15 @@ test-suite test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      ASTSpec
+      CompilerSpec
       ExampleSpec
+      InterpreterSpec
+      IRSpec
+      LexerQuickCheckSpec
+      LexerSpec
       ParserSpec
+      SemanticAnalyzerSpec
       Paths_xenon
   autogen-modules:
       Paths_xenon
@@ -98,13 +138,14 @@ test-suite test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
-    , base >=4.7 && <5
+    , base
+    , binary
     , bytestring
     , containers
     , hspec
     , hspec-discover
     , megaparsec
-    , parser-combinators >=1.3.0
+    , parser-combinators
     , text
     , xenon
   default-language: Haskell2010
