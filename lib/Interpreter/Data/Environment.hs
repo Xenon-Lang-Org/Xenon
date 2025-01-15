@@ -34,10 +34,10 @@ showField :: Field -> String
 showField (n, t) = n ++ ": " ++ show t
 
 instance Show EnvVar where
-    show (EVariable n t v) = "[ variable ] " ++ n ++ ": " ++ show t ++ " = " ++ show v
+    show (EVariable n t v) = "[ var  ] " ++ n ++ ": " ++ show t ++ " = " ++ show v
     show (EFunction n a t _) =
-        "[ function ] " ++ n ++ " (" ++ intercalate ", " (map showField a) ++ ") -> " ++ show t
-    show (EType n t) = "[   type   ] " ++ n ++ " -> " ++ show t
+        "[ func ] " ++ n ++ " (" ++ intercalate ", " (map showField a) ++ ") -> " ++ show t
+    show (EType n t) = "[ type ] " ++ n ++ " -> " ++ show t
 
 type Scope = [EnvVar]
 

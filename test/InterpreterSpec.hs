@@ -16,15 +16,18 @@ spec = do
 
         -- Environment
 
+        it "should represent an Env" $ do
+            show (env True) `shouldBe` "\n-- Global Environment --\n\n[Global]\n\n[Local]\n---\n"
+
         it "should compare two EnvVars" $ do
             eVar "foo" `shouldBe` eVar "foo"
             eVar "foo" `shouldNotBe` eVar "bar"
             eFunc "foo" `shouldBe` eFunc "foo"
 
         it "should show an EnvVar" $ do
-            show (eVar "foo") `shouldBe`  "[ variable ] foo: Mutable I32 = 0"
-            show (eFunc "foo") `shouldBe` "[ function ] foo (a: Mutable I32, b: Mutable I32) -> Mutable I32"
-            show (eType "foo") `shouldBe` "[   type   ] foo -> Immutable Enum { RED, GREEN, BLUE }"
+            show (eVar "foo") `shouldBe`  "[ var  ] foo: Mutable I32 = 0"
+            show (eFunc "foo") `shouldBe` "[ func ] foo (a: Mutable I32, b: Mutable I32) -> Mutable I32"
+            show (eType "foo") `shouldBe` "[ type ] foo -> Immutable Enum { RED, GREEN, BLUE }"
 
         it "should change the Env type" $ do
             setLocal (Env [] [] True) `shouldBe` Env [] [] False
@@ -93,39 +96,87 @@ spec = do
 
         it "should evaluate the variable expression" $ do
             evalExpr (envWith True [eVarI "foo" 3]) (Variable "foo")
-                `shouldSatisfy` mEvalExprIs (iLit 3)
+                `shouldSatisfy` evalExprIs (iLit 3)
             evalExpr (envWith True [eVarI "foo" 3]) (Variable "bar")
                 `shouldSatisfy` isErr
 
         it "should evaluate the literal expression" $ do
             evalExpr (env True) (ELiteral $ IntLiteral 42)
-                `shouldSatisfy` mEvalExprIs (iLit 42)
+                `shouldSatisfy` evalExprIs (iLit 42)
             evalExpr (env True) (ELiteral $ FloatLiteral 3.14)
-                `shouldSatisfy` mEvalExprIs (fLit 3.14)
+                `shouldSatisfy` evalExprIs (fLit 3.14)
 
         it "should evaluate the binary operation" $ do
             evalExpr (envWith True [eVarI "foo" 12]) (BinaryOp Add (Variable "foo") (iLit 8))
-                `shouldSatisfy` mEvalExprIs (iLit 20)
+                `shouldSatisfy` evalExprIs (iLit 20)
             evalExpr (envWith True [eVarI "foo" 0]) (BinaryOp Div (iLit 8) (Variable "foo"))
                 `shouldBe` Err "Division by zero"
             evalExpr (envWith True [eVarI "baz" 2]) (BinaryOp Shl (Variable "baz") (iLit 8))
-                `shouldSatisfy` mEvalExprIs (iLit 512)
+                `shouldSatisfy` evalExprIs (iLit 512)
 
         it "should evaluate the unary operation" $ do
             evalExpr (env True) (UnaryOp Negate (iLit 8))
-                `shouldSatisfy` mEvalExprIs (iLit 0)
+                `shouldSatisfy` evalExprIs (iLit 0)
             evalExpr (env True) (UnaryOp Negative (iLit 12))
-                `shouldSatisfy` mEvalExprIs (iLit (-12))
+                `shouldSatisfy` evalExprIs (iLit (-12))
             evalExpr (env True) (UnaryOp BitNot (iLit 24))
-                `shouldSatisfy` mEvalExprIs (iLit (-25))
+                `shouldSatisfy` evalExprIs (iLit (-25))
 
         it "should evaluate the parenthesis expression" $ do
             evalExpr (envWith True [eVarI "baz" 13]) (Parenthesis (Variable "baz"))
-                `shouldSatisfy` mEvalExprIs (iLit 13)
+                `shouldSatisfy` evalExprIs (iLit 13)
+        
+        it "should evaluate the function call expression" $ do
+            evalExpr (envWithFunc "foo") (FunctionCall "foo" [iLit 3, iLit 4]) 
+                `shouldSatisfy` evalExprIs (iLit 7)
 
         -- Statements
 
+        it "should evauate the variable declaration statement" $ do
+            evalStatement (env True) (VariableDeclaration "foo" iI32 (Just $ iLit 42)) 
+                `shouldBe` Ok (Env [eVarI "foo" 42] [] True, Nothing)
+            evalStatement (env True) (VariableDeclaration "foo" iI32 Nothing)
+                `shouldBe` Ok (Env [eVarI "foo" 0] [] True, Nothing)
+            evalStatement (envWithVar "foo") (VariableDeclaration "foo" iI32 (Just $ iLit 42))
+                `shouldSatisfy` isErr
 
+        it "should evaluate the function declaration statement" $ do
+            evalStatement (env True) (FunctionDeclaration "foo" eFuncArgs iI32 eFuncBody)
+                `shouldBe` Ok (envWithFunc "foo", Nothing)
+            evalStatement (envWithFunc "foo") (FunctionDeclaration "foo" eFuncArgs iI32 eFuncBody)
+                `shouldSatisfy` isErr
+
+        it "should evaluation the while loop" $ do
+            evalStatement (envWith True [eVar "foo", eVarI "bar" 10, eVar "baz"]) eWhile
+                `shouldBe` Ok (envWith True [eVarI "foo" 10, eVarI "bar" 10, eVarI "baz" 20], Nothing)
+
+        it "should evaluate the if statement" $ do
+            evalStatement (envWith True [eVarI "foo" 10, eVarI "bar" 20, eVarI "baz" 0]) eIf
+                `shouldBe` Ok (envWith True [eVarI "foo" 11, eVarI "bar" 20, eVarI "baz" 2], Nothing)
+            evalStatement (envWith True [eVarI "foo" 20, eVarI "bar" 10, eVarI "baz" 0]) eIf
+                `shouldBe` Ok (envWith True [eVarI "foo" (-1), eVarI "bar" 10, eVarI "baz" 0], Nothing)
+
+        it "should evaluate the type declaration statement" $ do
+            evalStatement (env True) (TypeDeclaration "foo" tEnum)
+                `shouldBe` Ok (envWithType "foo", Nothing)
+            evalStatement (envWithType "foo") (TypeDeclaration "foo" tEnum)
+                `shouldSatisfy` isErr
+        
+        it "should evaluate the return statement" $ do
+            evalStatement (env True) (ReturnStatement $ iLit 42)
+                `shouldSatisfy` mEvalExprIs (Just $ iLit 42)
+            evalStatement (env True) (ReturnStatement $ Variable "foo")
+                `shouldSatisfy` isErr
+        
+        it "should evaluate the standalone function call" $ do
+            evalStatement (envWithFunc "foo") (StandaloneFunctionCall "foo" [iLit 3, iLit 4])
+                `shouldBe` Ok (envWithFunc "foo", Nothing)
+            evalStatement (envWithFunc "foo") (StandaloneFunctionCall "bar" [iLit 3, iLit 4])
+                `shouldSatisfy` isErr
+        
+        it "should evaluate the variable reassignment statement" $ do
+            evalStatement (envWithVar "foo") (VariableReAssignment "foo" (iLit 42))
+                `shouldBe` Ok (envWith True [eVarI "foo" 42], Nothing)
 
 -- Helpers
 
@@ -162,6 +213,22 @@ eFuncBody = [ReturnStatement $ BinaryOp Add (Variable "a") (Variable "b")]
 eFuncArgs :: [Field]
 eFuncArgs = [("a", iI32), ("b", iI32)]
 
+eBody2 :: Body
+eBody2 = [VariableReAssignment "foo" (iLit (-1))]
+
+eBody :: Body
+eBody = [ VariableReAssignment "foo" (BinaryOp Add (Variable "foo") (iLit 1)) 
+             , VariableReAssignment "baz" (BinaryOp Add (Variable "baz") (iLit 2)) ]
+
+eCond :: Expression
+eCond = BinaryOp Lt (Variable "foo") (Variable "bar")
+
+eIf :: Statement
+eIf = If eCond eBody (Just eBody2)
+
+eWhile :: Statement
+eWhile = WhileLoop eCond eBody
+
 eFunc :: String -> EnvVar
 eFunc n = EFunction n  eFuncArgs iI32 eFuncBody
 
@@ -188,7 +255,7 @@ envWith True s = Env s [] True
 envWith False s = Env [] s False
 
 envWithStuff :: Bool -> Env
-envWithStuff ig = Env [eFunc "foo", eType "bar"] [eVar "baz"] ig
+envWithStuff = Env [eFunc "foo", eType "bar"] [eVar "baz"]
 
 varHasValue :: String -> Expression -> Result String Env -> Bool
 varHasValue n v (Ok e) = case fromEnv e n of
@@ -200,6 +267,10 @@ isExpr :: Expression -> Result String Expression -> Bool
 isExpr _ (Err _) = False
 isExpr v (Ok v') = v == v'
 
-mEvalExprIs :: Expression -> Result String (Env, Expression) -> Bool
+evalExprIs :: Expression -> Result String (Env, Expression) -> Bool
+evalExprIs _ (Err _) = False
+evalExprIs v (Ok (_, v')) = v == v'
+
+mEvalExprIs :: Maybe Expression -> Result String (Env, Maybe Expression) -> Bool
 mEvalExprIs _ (Err _) = False
 mEvalExprIs v (Ok (_, v')) = v == v'

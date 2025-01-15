@@ -1,6 +1,5 @@
 import System.Exit (ExitCode (ExitFailure), exitWith)
 import System.Environment (getArgs)
-
 import Interpreter.Data.Environment
 import Interpreter.System.Evaluator
 import Utils.Data.Result
@@ -38,6 +37,7 @@ maybePrint Nothing = return ()
 maybePrint (Just x) = print x
 
 processLine :: Env -> String -> IO Env
+processLine e ['/'] = putStrLn "Invalid command" >> return e
 processLine e ('/':xs) = do
     res <- runCommand e (words xs)
     case res of
@@ -63,7 +63,7 @@ interpret md = do
     res <- loadModules (env True) md
     case res of
         Err m -> printFailure m
-        Ok e -> runInputT defaultSettings (loop e)           
+        Ok e -> runInputT defaultSettings (loop e)
 
 main :: IO ()
 main = do
