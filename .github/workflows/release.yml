@@ -1,8 +1,10 @@
 name: Make Release
+
 on:
   push:
     tags:
       - 'v*'
+
 jobs:
   create-release:
     runs-on: ubuntu-latest
@@ -34,10 +36,9 @@ jobs:
             glados-${{ github.ref_name }}.tar.gz
           body: |
             GLaDOS Release ${{ github.ref_name }}
-
-      - name: Trigger Docker Build
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: new-release
-          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
+            
+            ## How to Install
+            ```bash
+            tar xzf glados-${{ github.ref_name }}.tar.gz
+            ./release/glados
+            ```
