@@ -1,7 +1,6 @@
 module Interpreter.System.Types
     (
         castExpr,
-        toLiteralExpr,
         toBool,
         defaultExpr
     )
@@ -46,10 +45,6 @@ castExpr e ex (CustomType mt n) = case deduceType e (CustomType mt n) of
     Ok t' -> castExpr e ex t'
     Err m -> Err m
 castExpr _ _ t = Err $ "Failed to cast expression to " ++ show t
-
-toLiteralExpr :: Type -> Expression -> Result String Literal
-toLiteralExpr _ (ELiteral v) = Ok v
-toLiteralExpr _ v = Err $ "Cannot deduce literal from " ++ show v
 
 toBool :: Expression -> Bool
 toBool (ELiteral (IntLiteral 0)) = False
