@@ -1,4 +1,3 @@
-import System.IO
 import System.Exit (ExitCode (ExitFailure), exitWith)
 import System.Environment (getArgs)
 
@@ -8,6 +7,8 @@ import Utils.Data.Result
 import Parser.Data.Ast
 import Interpreter.System.Module
 import Interpreter.System.Command (runCommand)
+import System.Console.Haskeline
+import Control.Monad.IO.Class (liftIO)
 
 isFnCall :: Body -> Bool
 isFnCall [StandaloneFunctionCall _ _] = True
@@ -48,22 +49,24 @@ processLine e line
         Ok (e', expr) -> maybePrint expr >> return e'
         Err m -> putStrLn m >> return e
 
-interpretStdin :: Env -> IO ()
-interpretStdin e = do
-    putStr "> "
-    hFlush stdout
-    line <- getLine
-    e' <- processLine e line
-    interpretStdin e'
+loop :: Env -> InputT IO ()
+loop e = do
+    mline <- getInputLine ">> "
+    case mline of
+        Nothing -> loop e
+        Just line -> do
+            e' <- liftIO $ processLine e line
+            loop e'
 
 interpret :: [String] -> IO ()
 interpret md = do
     res <- loadModules (env True) md
     case res of
-        Ok e -> interpretStdin e
         Err m -> printFailure m
+        Ok e -> runInputT defaultSettings (loop e)           
 
 main :: IO ()
 main = do
     args <- getArgs
+    putStrLn "Xenon Interpreter 1.0.0\nType '/help' for a list of commands."
     interpret args

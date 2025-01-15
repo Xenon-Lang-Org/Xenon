@@ -56,8 +56,8 @@ helpCmd e a = help a
 -- Commands
 
 commands :: [Command]
-commands = [ Command "help" helpCmd "help <command1> <command2> ..." 
-           , Command "load" loadModuleCmd "load <file1> <file2> ..."
-           , Command "env" lookupEnvCmd "env <var1> <var2> ..."
-           , Command "exit" exitCmd "exit"
+commands = [ Command "help" helpCmd "/help <command1> <command2> ..." 
+           , Command "load" loadModuleCmd "/load <file1> <file2> ..."
+           , Command "env" lookupEnvCmd "/env <var1> <var2> ..."
+           , Command "exit" exitCmd "/exit"
            ]
