@@ -42,4 +42,4 @@ tests: unit_tests func_tests
 coverage:
 	stack test --coverage
 
-.PHONY: all clean fclean re unit_tests func_tests tests coverage
+.PHONY: xcc xrun xin all clean fclean re unit_tests func_tests tests coverage
