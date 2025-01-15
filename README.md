@@ -16,43 +16,52 @@ Xenon is a new programming language designed for simplicity and efficiency. This
 - HLS: 2.9.0.1
 - Cabal: 3.10.3.0
 - Stack: 3.1.1
+- Make: 4.3 (Optional, Linux Only)
 
 ### Installation
 
-1. Clone the repository:
-    ```sh
-    git clone https://github.com/Xenon-Lang-Org/Xenon.git
-    cd Xenon
-    ```
+**1. Clone the repository:**
 
-2. Build the project using the makefile:
-    ```sh
-    make
-    ```
+```sh
+git clone https://github.com/Xenon-Lang-Org/Xenon.git
+```
 
-Alternatively, you may build the compiler, vm or interpreter separately.
-    ```sh
-    make xcc
-    make xrun
-    make xin
-    ```
+**2. Build the project:**
+
+*using Make*
+```sh
+make
+```
+
+*using Stack*
+```sh
+stack build
+```
+
+Alternatively, you may build the compiler, vm or interpreter separately *using Make*.
+
+```sh
+make xcc
+make xrun
+make xin
+```
 
 ### Usage
 
-To compile a Xenon source file to WebAssembly:
+**To compile a Xenon source file to WebAssembly:**
 ```sh
 ./xcc <source-file.xn>
 ```
-To compile a Xenon source file to a specified output file:
+**To compile a Xenon source file to a specified output file:**
 ```sh
 ./xcc <source-file.xn> -o <output-file.wasm>
 ```
 
-To run the interpreter:
+**To run the interpreter:**
 ```sh
 ./xin
 ```
-You may add sources files to the arguments to load them beforehand:
+**To run the interpreter and load Xenon files beforehand:**
 ```sh
 ./xin <file1> <file2> ...
 ```
@@ -61,17 +70,36 @@ You may add sources files to the arguments to load them beforehand:
 You can find example Xenon programs in the [examples](examples) directory.
 
 ### Running Tests
-To run all tests:
+
+**To run all tests:**
+
+*using Make*
 ```sh
 make tests
 ```
-To run the unit tests:
+
+**To run the unit tests:**
+
+*using Make*
 ```sh
 make unit_tests
 ```
-To run the functional tests:
+
+*using Stack*
+```sh
+stack test
+```
+
+**To run the functional tests:**
+
+*using Make*
 ```sh
 make func_tests
+```
+
+*using Bash*
+```sh
+./test/tester.sh
 ```
 
 ### Documentation
