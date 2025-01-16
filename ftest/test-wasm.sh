@@ -36,6 +36,8 @@ wat_test_cases=(
   "gcd.wat"                 "7 5"       "gcd"           "1"
   "bitwise.wat"             "5 3"       "bitwise"       "14"
   "bitwise.wat"             "10 4"      "bitwise"       "28"
+  "sum_digits.wat"          "123"       "sum_digits"    "6"
+  "sum_digits.wat"          "1018"      "sum_digits"    "10"
 )
 
 # Compile all

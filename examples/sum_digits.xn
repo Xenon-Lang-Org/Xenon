@@ -1,0 +1,11 @@
+fn sum_digits(n: i32) -> i32
+{
+    let sum: mut i32 = 0;
+    let num: mut i32 = n;
+
+    while (num > 0) {
+        sum = sum + (num % 10);
+        num = num / 10;
+    }
+    return sum;
+}
