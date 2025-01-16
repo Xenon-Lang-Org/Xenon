@@ -158,9 +158,7 @@ evalProg (Program b) = ensuredEvalBody (env True) b
 
 appendCallVar :: Env -> Env -> Expression -> String -> Type -> Result String (Env, Env)
 appendCallVar old new expr name t = case castExpr old expr t of
-    Ok expr' -> case pushVariable new (VariableDeclaration name t (Just expr')) of
-        Ok new' -> Ok (old, new')
-        Err msg -> Err msg
+    Ok expr' -> Ok (old, pushEnv new (EVariable name t expr'))
     Err msg -> Err msg
 
 pushCallVar :: (Expression, (String, Type)) -> Result String (Env, Env) -> Result String (Env, Env)
@@ -170,8 +168,9 @@ pushCallVar (expr, (name, t)) (Ok (old, new)) = case evalExpr old expr of
     Err msg -> Err msg
 
 callEnv :: Env -> [Expression] -> [(String, Type)] -> Result String Env
-callEnv e args params =
-    case foldr pushCallVar (Ok (e, fromGlobal False (global e))) (zip args params) of
+callEnv e args params
+    | length args /= length params = Err "mismatched number of arguments"
+    | otherwise = case foldr pushCallVar (Ok (e, fromGlobal False (global e))) (zip args params) of
         Ok (_, new) -> Ok new
         Err msg -> Err msg
 

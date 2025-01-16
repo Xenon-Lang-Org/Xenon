@@ -185,6 +185,10 @@ spec = do
         it "should evaluate the function call expression" $ do
             evalExpr (envWithFunc "foo") (FunctionCall "foo" [iLit 3, iLit 4]) 
                 `shouldSatisfy` evalExprIs (iLit 7)
+            evalExpr (envWith True [eDefFunc "add", eVarI "foo" 42]) (FunctionCall "add" [iLit 84])
+                `shouldSatisfy` evalExprIs (iLit 84)
+            evalExpr (envWithFunc "foo") (FunctionCall "foo" [])
+                `shouldSatisfy` isErr
 
         -- Statements
 
@@ -286,6 +290,9 @@ eVarI n i = EVariable n iI32 (iLit i)
 
 eVarF :: String -> Double -> EnvVar
 eVarF n f = EVariable n fF32 (fLit f)
+
+eDefFunc :: String -> EnvVar
+eDefFunc n = EFunction n [("foo", iI32)] iI32 [ ReturnStatement (Variable "foo") ]
 
 eFuncBody :: Body
 eFuncBody = [ReturnStatement $ BinaryOp Add (Variable "a") (Variable "b")]
