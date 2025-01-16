@@ -3,7 +3,7 @@
 module ParserSpec (main, spec) where
 
 import Test.Hspec
-import Test.QuickCheck
+-- import Test.QuickCheck
 import Data.Void
 import Text.Megaparsec (parse, errorBundlePretty, ParseErrorBundle)
 import qualified Parser.System.Lexer as Lexer
