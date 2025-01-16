@@ -59,6 +59,6 @@ newtype ValidIdentifier = ValidIdentifier String
 
 instance Arbitrary ValidIdentifier where
   arbitrary = do
-    firstChar <- elements (['a'..'z'] ++ ['A'..'Z'])
+    firstChar <- elements (['a'..'z'] ++ ['A'..'Z'] ++ ['_'])
     rest <- listOf $ elements (['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ ['_'])
     return $ ValidIdentifier (firstChar : rest)
