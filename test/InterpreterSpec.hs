@@ -192,7 +192,7 @@ spec = do
 
         -- Statements
 
-        it "should evauate the variable declaration statement" $ do
+        it "should evaluate the variable declaration statement" $ do
             evalStatement (env True) (VariableDeclaration "foo" iI32 (Just $ iLit 42)) 
                 `shouldBe` Ok (Env [eVarI "foo" 42] [] True, Nothing)
             evalStatement (env True) (VariableDeclaration "foo" iI32 Nothing)
