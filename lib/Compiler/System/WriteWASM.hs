@@ -60,44 +60,44 @@ encodeInstruction instr = case instr of
   ModuleMod vt -> case vt of
     ModuleI32 -> [0x6F]  -- i32.rem_s
     ModuleI64 -> [0x81]  -- i64.rem_s
-    ModuleF32 -> [0x96]  -- f32.rem
-    ModuleF64 -> [0xA4]  -- f64.rem
+    ModuleF32 -> error "f32.mod not supported"
+    ModuleF64 -> error "f64.mod not supported"
 
   ModuleBitAnd vt -> case vt of
     ModuleI32 -> [0x71]  -- i32.and
     ModuleI64 -> [0x83]  -- i64.and
-    ModuleF32 -> [0x97]  -- f32.and
-    ModuleF64 -> [0xA5]  -- f64.and
+    ModuleF32 -> error "f32.and not supported"
+    ModuleF64 -> error "f64.and not supported"
 
   ModuleBitOr vt -> case vt of
     ModuleI32 -> [0x72]  -- i32.or
     ModuleI64 -> [0x84]  -- i64.or
-    ModuleF32 -> [0x98]  -- f32.or
-    ModuleF64 -> [0xA6]  -- f64.or
+    ModuleF32 -> error "f32.or not supported"
+    ModuleF64 -> error "f64.or not supported"
   
   ModuleBitXor vt -> case vt of
     ModuleI32 -> [0x73]  -- i32.xor
     ModuleI64 -> [0x85]  -- i64.xor
-    ModuleF32 -> [0x99]  -- f32.xor
-    ModuleF64 -> [0xA7]  -- f64.xor
+    ModuleF32 -> error "f32.xor not supported"
+    ModuleF64 -> error "f64.xor not supported"
   
   ModuleBitNot vt -> case vt of
     ModuleI32 -> [0x74]  -- i32.not
     ModuleI64 -> [0x86]  -- i64.not
-    ModuleF32 -> [0x9A]  -- f32.not
-    ModuleF64 -> [0xA8]  -- f64.not
+    ModuleF32 -> error "f32.not not supported"
+    ModuleF64 -> error "f64.not not supported"
 
   ModuleShl vt -> case vt of
     ModuleI32 -> [0x75]  -- i32.shl
     ModuleI64 -> [0x87]  -- i64.shl
-    ModuleF32 -> [0x9B]  -- f32.shl
-    ModuleF64 -> [0xA9]  -- f64.shl
+    ModuleF32 -> error "f32.shl not supported"
+    ModuleF64 -> error "f64.shl not supported"
   
   ModuleShr vt -> case vt of
     ModuleI32 -> [0x76]  -- i32.shr_s
     ModuleI64 -> [0x88]  -- i64.shr_s
-    ModuleF32 -> [0x9C]  -- f32.shr
-    ModuleF64 -> [0xAA]  -- f64.shr
+    ModuleF32 -> error "f32.shr not supported"
+    ModuleF64 -> error "f64.shr not supported"
 
   ModuleGt vt -> case vt of
     ModuleI32 -> [0x4A]  -- i32.gt_s
@@ -137,20 +137,19 @@ encodeInstruction instr = case instr of
 
   ModuleEqz ModuleI32 -> [0x45]  -- i32.eqz
   ModuleEqz ModuleI64 -> [0x50]  -- i64.eqz
-  ModuleEqz ModuleF32 -> [0x5A]  -- f32.eqz
-  ModuleEqz ModuleF64 -> [0x60]  -- f64.eqz
+  ModuleEqz _ -> error "eqz not supported for float types"
 
   ModuleAnd vt -> case vt of
     ModuleI32 -> [0x71]  -- i32.and
     ModuleI64 -> [0x83]  -- i64.and
-    ModuleF32 -> [0x97]  -- f32.and
-    ModuleF64 -> [0xA5]  -- f64.and
+    ModuleF32 -> error "f32.and not supported"
+    ModuleF64 -> error "f64.and not supported"
   
   ModuleOr vt -> case vt of
     ModuleI32 -> [0x72]  -- i32.or
     ModuleI64 -> [0x84]  -- i64.or
-    ModuleF32 -> [0x98]  -- f32.or
-    ModuleF64 -> [0xA6]  -- f64.or
+    ModuleF32 -> error "f32.or not supported"
+    ModuleF64 -> error "f64.or not supported"
 
   ModuleLocalGet idx -> [0x20] <> encodeU32LEB128 idx
   ModuleLocalSet idx -> [0x21] <> encodeU32LEB128 idx
