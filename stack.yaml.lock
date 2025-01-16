@@ -75,6 +75,13 @@ packages:
   original:
     hackage: hspec-2.11.10
 - completed:
+    hackage: data-binary-ieee754-0.4.4@sha256:60a56dd516e3710f05d79310cce25a10ed0f361a388df1e24ef96ce540901e1c,948
+    pantry-tree:
+      sha256: 5d96e09b3fdd3944db3ccb5fd7a57de3c9cdd905347c000e20d89264a3a95441
+      size: 346
+  original:
+    hackage: data-binary-ieee754-0.4.4
+- completed:
     hackage: hspec-core-2.11.10@sha256:da9f859a25e07f9e562e460037ba09f38c420c5fb6dc56b57027c7d6be0a4281,7498
     pantry-tree:
       sha256: 2821221d332d3a9d0da91d4e2526a2d6af6b49aeea5419548be9045a1260dbb2

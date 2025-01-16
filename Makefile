@@ -8,18 +8,15 @@ BIN_DIR		=	$(shell stack path --local-install-root)/bin
 
 all:
 	stack build
+
+$(COMPILER): all
 	cp $(BIN_DIR)/compiler ./$(COMPILER)
-	cp $(BIN_DIR)/wasm-interpreter ./$(VM)
+
+$(VM): all
+	cp $(BIN_DIR)/wasm-vm ./$(VM)
+
+$(INTERPRETER): all
 	cp $(BIN_DIR)/interpreter ./$(INTERPRETER)
-
-$(COMPILER):
-	stack build && cp $(BIN_DIR)/compiler ./$(COMPILER)
-
-$(VM):
-	stack build && cp $(BIN_DIR)/wasm-interpreter ./$(VM)
-
-$(INTERPRETER):
-	stack build && cp $(BIN_DIR)/interpreter ./$(INTERPRETER)
 
 clean:
 	stack clean
@@ -29,17 +26,18 @@ fclean: clean
 	rm -f $(VM)
 	rm -f $(INTERPRETER)
 
-re: fclean all
+re: fclean $(COMPILER) $(VM) $(INTERPRETER)
 
 unit_tests:
 	stack test
 
-func_tests:
+func_tests: $(COMPILER) $(VM) $(INTERPRETER)
 	./test/tester.sh
+	./ftest/test-wasm.sh
 
 tests: unit_tests func_tests
 
 coverage:
 	stack test --coverage
 
-.PHONY: xcc xrun xin all clean fclean re unit_tests func_tests tests coverage
+.PHONY: all clean fclean re unit_tests func_tests tests coverage

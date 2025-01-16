@@ -9,7 +9,7 @@ run_test() {
 
     echo -e "\033[34mRunning Test: $test_description\033[0m"
 
-    ./run-compiler $input_file -o temp_test.wasm > /dev/null
+    ./xcc $input_file -o temp_test.wasm > /dev/null
 
     if [ $? -ne 0 ]; then
         echo -e "\033[31mTest Failed: $test_description\033[0m"

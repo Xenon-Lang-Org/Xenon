@@ -99,13 +99,6 @@ encodeInstruction instr = case instr of
     ModuleF32 -> [0x9C]  -- f32.shr
     ModuleF64 -> [0xAA]  -- f64.shr
 
-  ModuleLocalGet idx -> [0x20] <> encodeU32LEB128 idx
-  ModuleLocalSet idx -> [0x21] <> encodeU32LEB128 idx
-  ModuleGlobalGet idx -> [0x23] <> encodeU32LEB128 idx
-  ModuleGlobalSet idx -> [0x24] <> encodeU32LEB128 idx
-
-  ModuleCall idx -> [0x10] <> encodeU32LEB128 idx
-
   ModuleGt vt -> case vt of
     ModuleI32 -> [0x4A]  -- i32.gt_s
     ModuleI64 -> [0x55]  -- i64.gt_s
@@ -158,6 +151,13 @@ encodeInstruction instr = case instr of
     ModuleI64 -> [0x84]  -- i64.or
     ModuleF32 -> [0x98]  -- f32.or
     ModuleF64 -> [0xA6]  -- f64.or
+
+  ModuleLocalGet idx -> [0x20] <> encodeU32LEB128 idx
+  ModuleLocalSet idx -> [0x21] <> encodeU32LEB128 idx
+  ModuleGlobalGet idx -> [0x23] <> encodeU32LEB128 idx
+  ModuleGlobalSet idx -> [0x24] <> encodeU32LEB128 idx
+
+  ModuleCall idx -> [0x10] <> encodeU32LEB128 idx
 
   ModuleIf maybeResType thenInstrs elseInstrs ->
     let blockTypeByte = case maybeResType of
