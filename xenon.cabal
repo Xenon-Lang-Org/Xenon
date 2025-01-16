@@ -42,6 +42,7 @@ library
       Utils.Control.Convert
       Utils.Data.Result
       Utils.System.Math
+      Utils.System.Print
   other-modules:
       Paths_xenon
   autogen-modules:
