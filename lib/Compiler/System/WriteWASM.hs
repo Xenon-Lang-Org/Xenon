@@ -99,13 +99,6 @@ encodeInstruction instr = case instr of
     ModuleF32 -> error "f32.shr not supported"
     ModuleF64 -> error "f64.shr not supported"
 
-  ModuleLocalGet idx -> [0x20] <> encodeU32LEB128 idx
-  ModuleLocalSet idx -> [0x21] <> encodeU32LEB128 idx
-  ModuleGlobalGet idx -> [0x23] <> encodeU32LEB128 idx
-  ModuleGlobalSet idx -> [0x24] <> encodeU32LEB128 idx
-
-  ModuleCall idx -> [0x10] <> encodeU32LEB128 idx
-
   ModuleGt vt -> case vt of
     ModuleI32 -> [0x4A]  -- i32.gt_s
     ModuleI64 -> [0x55]  -- i64.gt_s
@@ -157,6 +150,13 @@ encodeInstruction instr = case instr of
     ModuleI64 -> [0x84]  -- i64.or
     ModuleF32 -> error "f32.or not supported"
     ModuleF64 -> error "f64.or not supported"
+
+  ModuleLocalGet idx -> [0x20] <> encodeU32LEB128 idx
+  ModuleLocalSet idx -> [0x21] <> encodeU32LEB128 idx
+  ModuleGlobalGet idx -> [0x23] <> encodeU32LEB128 idx
+  ModuleGlobalSet idx -> [0x24] <> encodeU32LEB128 idx
+
+  ModuleCall idx -> [0x10] <> encodeU32LEB128 idx
 
   ModuleIf maybeResType thenInstrs elseInstrs ->
     let blockTypeByte = case maybeResType of

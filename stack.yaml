@@ -17,6 +17,8 @@ extra-deps:
 - QuickCheck-2.15.0.1
 - hspec-2.11.10
 
+- data-binary-ieee754-0.4.4
+
 - hspec-core-2.11.10@sha256:da9f859a25e07f9e562e460037ba09f38c420c5fb6dc56b57027c7d6be0a4281,7498
 - hspec-discover-2.11.10@sha256:66f66caff8e3a0b0b1575381e474157795452b86f676aae41d5eb87e18a858f0,2171
 - hspec-expectations-0.8.4@sha256:4237f094a7931202ff57ac6475542b0b314b50a7024550e2b6eb87cfb0d4ff93,1702
