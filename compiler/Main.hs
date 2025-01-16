@@ -34,9 +34,9 @@ main :: IO ()
 main = do
     args <- getArgs
     case args of
-        ["-h"] -> putStrLn "Usage: ./compiler <filename.xn> [-o output.wasm]"
+        ["-h"] -> putStrLn "Usage: ./xcc <filename.xn> [-o output.wasm]"
         [filename, "-o", output] | checkArgs [filename, "-o", output] -> compile filename output
                                  | otherwise -> putStrLn "\ESC[31mError: filename must end with .xn and output must end with .wasm\ESC[97m"
         [filename] | checkArgs [filename] -> compile filename "result.wasm"
                    | otherwise -> putStrLn "\ESC[31mError: filename must end with .xn\ESC[97m"
-        _ -> putStrLn "Usage: ./compiler <filename.xn> [-o output.wasm]"
+        _ -> putStrLn "Usage: ./xcc <filename.xn> [-o output.wasm]"

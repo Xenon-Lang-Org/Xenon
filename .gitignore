@@ -10,3 +10,6 @@ run-lisp
 *.hi
 .bashrc
 result.wasm
+xcc
+xrun
+xin
