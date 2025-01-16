@@ -109,14 +109,14 @@ isRight _ = False
 -- Arbitrary Generators for QuickCheck
 -------------------------------------------------------------------------------
 
--- Generate valid variable names (alphanumeric starting with a lowercase letter)
-genVariableName :: Gen String
-genVariableName = (:) <$> elements ['a'..'z'] <*> listOf (elements $ ['a'..'z'] ++ ['0'..'9'] ++ ['_'])
+-- -- Generate valid variable names (alphanumeric starting with a lowercase letter)
+-- genVariableName :: Gen String
+-- genVariableName = (:) <$> elements ['a'..'z'] <*> listOf (elements $ ['a'..'z'] ++ ['0'..'9'] ++ ['_'])
 
--- Generate random integer values
-genIntValue :: Gen Int
-genIntValue = arbitrary --`suchThat` (>= 0)
+-- -- Generate random integer values
+-- genIntValue :: Gen Int
+-- genIntValue = arbitrary --`suchThat` (>= 0)
 
--- Combine to generate variable declarations
-genVariableDeclaration :: Gen (String, Int)
-genVariableDeclaration = (,) <$> genVariableName <*> genIntValue
+-- -- Combine to generate variable declarations
+-- genVariableDeclaration :: Gen (String, Int)
+-- genVariableDeclaration = (,) <$> genVariableName <*> genIntValue
