@@ -32,6 +32,8 @@ wat_test_cases=(
   "or.wat"                  "5 15"      "ifor"          "1"
   "subAndMul.wat"           ""          "submul"        "200"
   "while.wat"               "5"         "dowhile"       "5"
+  "gcd.wat"                 "48 18"     "gcd"           "6"
+  "gcd.wat"                 "7 5"       "gcd"           "1"
 )
 
 # Compile all
