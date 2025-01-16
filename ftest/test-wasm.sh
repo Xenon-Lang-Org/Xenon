@@ -34,6 +34,8 @@ wat_test_cases=(
   "while.wat"               "5"         "dowhile"       "5"
   "gcd.wat"                 "48 18"     "gcd"           "6"
   "gcd.wat"                 "7 5"       "gcd"           "1"
+  "bitwise.wat"             "5 3"       "bitwise"       "14"
+  "bitwise.wat"             "10 4"      "bitwise"       "28"
 )
 
 # Compile all
