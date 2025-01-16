@@ -15,6 +15,7 @@ module Interpreter.Data.Environment
         pushVariable,
         pushFunction,
         pushType,
+        pushEnv,
         assignVar,
         envAll,
         envAllNames

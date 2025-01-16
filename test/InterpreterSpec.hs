@@ -81,19 +81,15 @@ spec = do
 
         -- Types
 
-        it "should wrap an Integer according to a primitive" $ do
-            castExpr (env True) (iLit 255) iI8 `shouldSatisfy` isExpr (iLit (-1))
-            castExpr (env True) (iLit 32769) iI16 `shouldSatisfy` isExpr (iLit (-32767))
-            castExpr (env True) (iLit 2147483649) iI32 `shouldSatisfy` isExpr (iLit (-2147483647))
-            castExpr (env True) (iLit 9223372036854776001) iI64 `shouldSatisfy` isExpr (iLit (-9223372036854775615))
-            castExpr (env True) (iLit 257) iU8 `shouldSatisfy` isExpr (iLit 1)
-            castExpr (env True) (iLit 65536) iU16 `shouldSatisfy` isExpr (iLit 0)
-            castExpr (env True) (iLit 4294967298) iU32 `shouldSatisfy` isExpr (iLit 2)
-            castExpr (env True) (iLit 18446744073709551618) iU64 `shouldSatisfy` isExpr (iLit 2)
-            castExpr (env True) (iLit 256) iU8 `shouldSatisfy` isExpr (iLit 0)
-            castExpr (env True) (iLit (-1)) iU8 `shouldSatisfy` isExpr (iLit 255)
-            castExpr (env True) (iLit (-1)) iI32 `shouldSatisfy` isExpr (iLit (-1))
-            castExpr (env True) (iLit (-1)) iU32 `shouldSatisfy` isExpr (iLit 4294967295)
+        it "should clamp an Integer according to a primitive" $ do
+            castExpr (env True) (iLit 255) iI8 `shouldSatisfy` isExpr (iLit 127)
+            castExpr (env True) (iLit 32769) iI16 `shouldSatisfy` isExpr (iLit 32767)
+            castExpr (env True) (iLit 2147483649) iI32 `shouldSatisfy` isExpr (iLit 2147483647)
+            castExpr (env True) (iLit 9223372036854775810) iI64 `shouldSatisfy` isExpr (iLit 9223372036854775807)
+            castExpr (env True) (iLit 257) iU8 `shouldSatisfy` isExpr (iLit 255)
+            castExpr (env True) (iLit 65536) iU16 `shouldSatisfy` isExpr (iLit 65535)
+            castExpr (env True) (iLit 4294967298) iU32 `shouldSatisfy` isExpr (iLit 4294967295)
+            castExpr (env True) (iLit 18446744073709551618) iU64 `shouldSatisfy` isExpr (iLit 18446744073709551615)
             castExpr (env True) (fLit 1.3) fF64 `shouldSatisfy` isExpr (fLit 1.3)
 
         it "should return a default value for the given type" $ do
@@ -185,10 +181,14 @@ spec = do
         it "should evaluate the function call expression" $ do
             evalExpr (envWithFunc "foo") (FunctionCall "foo" [iLit 3, iLit 4]) 
                 `shouldSatisfy` evalExprIs (iLit 7)
+            evalExpr (envWith True [eDefFunc "add", eVarI "foo" 42]) (FunctionCall "add" [iLit 84])
+                `shouldSatisfy` evalExprIs (iLit 84)
+            evalExpr (envWithFunc "foo") (FunctionCall "foo" [])
+                `shouldSatisfy` isErr
 
         -- Statements
 
-        it "should evauate the variable declaration statement" $ do
+        it "should evaluate the variable declaration statement" $ do
             evalStatement (env True) (VariableDeclaration "foo" iI32 (Just $ iLit 42)) 
                 `shouldBe` Ok (Env [eVarI "foo" 42] [] True, Nothing)
             evalStatement (env True) (VariableDeclaration "foo" iI32 Nothing)
@@ -286,6 +286,9 @@ eVarI n i = EVariable n iI32 (iLit i)
 
 eVarF :: String -> Double -> EnvVar
 eVarF n f = EVariable n fF32 (fLit f)
+
+eDefFunc :: String -> EnvVar
+eDefFunc n = EFunction n [("foo", iI32)] iI32 [ ReturnStatement (Variable "foo") ]
 
 eFuncBody :: Body
 eFuncBody = [ReturnStatement $ BinaryOp Add (Variable "a") (Variable "b")]
