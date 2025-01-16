@@ -8,14 +8,14 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: xenon-lang-org/glados-image
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Set up GHC
         uses: haskell-actions/setup@v2
         with:
@@ -48,14 +48,14 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -64,21 +64,3 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-  deploy-staging:
-    needs: docker
-    runs-on: ubuntu-latest
-    environment: staging
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Deploy to staging
-        run: echo "Deploying to staging..."
-
-  deploy-production:
-    needs: deploy-staging
-    runs-on: ubuntu-latest
-    environment: production
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Deploy to production
-        run: echo "Deploying to production..."
