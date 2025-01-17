@@ -126,9 +126,9 @@ analyzeVarDecl ctx name typ initExpr =
 analyzeFuncDecl :: AnalysisContext -> FunctionName -> [Field] -> Type -> Body -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
 analyzeFuncDecl ctx name params retType body = do
   let funcCtx = ctx { variables = foldr addParam (variables ctx) params, functions = Map.insert name (params, retType) (functions ctx) }
-  (_, bodyErrs) <- analyzeStatements funcCtx body
+  (innerCtx, bodyErrs) <- analyzeStatements funcCtx body
   if hasValidReturn body retType
-    then Right (ctx, bodyErrs)
+    then Right (ctx { functions = functions innerCtx }, bodyErrs)
     else Left [MissingReturnStatement name]
   where
     addParam (named, typ) = Map.insert named (typ, True)
