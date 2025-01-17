@@ -55,6 +55,10 @@ popScope :: Env -> Env
 popScope (Env (_:xs)) = Env xs
 popScope e = e
 
+localScope :: Env -> Scope
+localScope (Env []) = []
+localScope (Env (x:_)) = x
+
 varName :: EnvVar -> String
 varName (EVariable n _ _) = n
 varName (EFunction n _ _ _) = n
@@ -80,14 +84,6 @@ fromEnv (Env (x:xs)) n = case fromScope x n of
 pushEnv :: Env -> EnvVar -> Env
 pushEnv (Env []) v = pushScope env [v]
 pushEnv (Env (x:xs)) v = Env ((v:x):xs)
-
-pushVariable :: Env -> Statement -> Result String Env
-pushVariable e (VariableDeclaration n t (Just v)) = case fromEnv e n of
-    Ok _ -> Err $ n ++ " redefined"
-    _ -> Ok $ pushEnv e (EVariable n t v)
-pushVariable _ (VariableDeclaration n _ Nothing) =
-    Err $ "Variable " ++ n ++ " must have a value to be added to env"
-pushVariable _ v = Err $ "Bad variable type (" ++ show v ++ ")"
 
 assignScopeVar :: Scope -> String -> Expression -> Maybe Scope
 assignScopeVar [] _ _ = Nothing
@@ -126,14 +122,22 @@ assignVar e n v = case validateAssign e n of
                     Ok (Env xs') -> Ok $ Env (x:xs') 
                     Err m -> Err m
 
+pushVariable :: Env -> Statement -> Result String Env
+pushVariable e (VariableDeclaration n t (Just v)) = case (fromScope . localScope) e n of
+    Just _ -> Err $ n ++ " redefined"
+    _ -> Ok $ pushEnv e (EVariable n t v)
+pushVariable _ (VariableDeclaration n _ Nothing) =
+    Err $ "Variable " ++ n ++ " must have a value to be added to env"
+pushVariable _ v = Err $ "Bad variable type (" ++ show v ++ ")"
+
 pushFunction :: Env -> Statement -> Result String Env
-pushFunction e (FunctionDeclaration n a t b) = case fromEnv e n of
-    Ok _ -> Err $ n ++ " redefined"
+pushFunction e (FunctionDeclaration n a t b) = case (fromScope . localScope) e n of
+    Just _ -> Err $ n ++ " redefined"
     _ -> Ok $ pushEnv e (EFunction n a t b)
 pushFunction _ f = Err $ "Bad function type (" ++ show f ++ ")"
 
 pushType :: Env -> Statement -> Result String Env
-pushType e (TypeDeclaration n t) = case fromEnv e n of
-    Ok _ -> Err $ n ++ " redefined"
+pushType e (TypeDeclaration n t) = case (fromScope . localScope) e n of
+    Just _ -> Err $ n ++ " redefined"
     _ -> Ok $ pushEnv e (EType n t)
 pushType _ t = Err $ "Bad type definition (" ++ show t ++ ")"
