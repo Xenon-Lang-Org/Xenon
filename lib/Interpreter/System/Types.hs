@@ -42,7 +42,7 @@ castExpr _ (ELiteral l) (PrimitiveType _ t) = Ok $ ELiteral $ castLiteral l t
 castExpr e ex (CustomType mt n) = case deduceType e (CustomType mt n) of
     Ok t' -> castExpr e ex t'
     Err m -> Err m
-castExpr _ _ t = Err $ "Failed to cast expression to " ++ show t
+castExpr _ ex t = Err $ "Failed to cast " ++ show ex ++ " to " ++ show t
 
 toBool :: Expression -> Bool
 toBool (ELiteral (IntLiteral 0)) = False
