@@ -52,7 +52,7 @@ loop e = do
 
 interpret :: [String] -> IO ()
 interpret md = do
-    res <- loadModules (env True) md
+    res <- loadModules env md
     case res of
         Err m -> printFailure m
         Ok e -> do
@@ -64,7 +64,7 @@ execute fp = do
     raw <- readFile fp
     case parseProg raw of
         Err m -> putStrLn m
-        Ok (Program b) -> void $ evalBodyPrint (env True) b
+        Ok (Program b) -> void $ evalBodyPrint env b
 
 getExecPath :: [String] -> Result String (Maybe String)
 getExecPath [] = Ok Nothing
