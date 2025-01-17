@@ -1,0 +1,40 @@
+// Interpreter Only
+
+fn count_mod(end: i32, n: i32) -> i32
+{
+    fn add(a: i32, b: i32) -> i32
+    {
+        return a + b;
+    }
+
+    fn count_mod_rec(end: i32, n: mut i32) -> i32
+    {
+        if (n % 2 == 1) {
+            n = n * 2;
+        }
+
+        fn mod(a: i32, b: i32) -> i32
+        {
+            return a % b;
+        }
+
+        fn sum(start: i32, end: i32) -> i32
+        {
+            if (start > end) {
+                return 0;
+            }
+            return add(start, sum(start + 1, end));
+        }
+
+        let all: i32 = sum(0, end);
+        return mod(all, n);
+    }
+
+    if (end < 0 || n <= 0) {
+        return 0;
+    }
+    return count_mod_rec(end, n);
+}
+
+// count_mod(10, 7); // 13
+// count_mod(55, 12); // 4
