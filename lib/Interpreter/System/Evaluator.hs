@@ -54,6 +54,10 @@ evalExpr e expr = case expr of
 
     FunctionCall n a -> callFunc e n a
 
+
+evalAllExpr :: Env -> [Expression] -> Result String (Env, [Expression])
+evalAllExpr = buildUp evalExpr
+
 evalCastExpr :: Env -> Type -> Expression -> Result String Eval
 evalCastExpr e t expr = case evalExpr e expr of
     Ok (e', expr') -> case castExpr e' expr' t of
@@ -152,34 +156,34 @@ ensuredEvalBody :: Env -> Body -> Result String Eval
 ensuredEvalBody e b = ensureEval $ evalBody e b
 
 evalProg :: Program -> Result String (Env, Expression)
-evalProg (Program b) = ensuredEvalBody (env True) b
+evalProg (Program b) = ensuredEvalBody env b
 
 -- Function
 
-appendCallVar :: Env -> Env -> Expression -> String -> Type -> Result String (Env, Env)
-appendCallVar old new expr name t = case castExpr old expr t of
-    Ok expr' -> Ok (old, pushEnv new (EVariable name t expr'))
-    Err msg -> Err msg
-
-pushCallVar :: (Expression, (String, Type)) -> Result String (Env, Env) -> Result String (Env, Env)
-pushCallVar _ (Err msg) = Err msg
-pushCallVar (expr, (name, t)) (Ok (old, new)) = case evalExpr old expr of
-    Ok (old', expr') -> appendCallVar old' new expr' name t
-    Err msg -> Err msg
+callScope :: Env -> [Expression] -> [(String, Type)] -> Result String Scope
+callScope e args params 
+    | length args /= length params = Err "Invalid number of arguments"
+    | otherwise = buildScope $ zip args params
+    where
+        buildScope [] = Ok []
+        buildScope ((v,(n, t)):xs) = case castExpr e v t of
+            Err m -> Err m
+            Ok v' -> case buildScope xs of
+                Err m -> Err m
+                Ok vs -> Ok (EVariable n t v':vs)
 
 callEnv :: Env -> [Expression] -> [(String, Type)] -> Result String Env
-callEnv e args params
-    | length args /= length params = Err "mismatched number of arguments"
-    | otherwise = case foldr pushCallVar (Ok (e, fromGlobal False (global e))) (zip args params) of
-        Ok (_, new) -> Ok new
-        Err msg -> Err msg
+callEnv e args params = case callScope e args params of
+    Ok s -> Ok $ pushScope e s
+    Err m -> Err m
 
 callFunc :: Env -> String -> [Expression] -> Result String Eval
 callFunc e n args = do
     func <- fromEnv e n
     case func of
         EFunction _ params _ body -> do
-            e' <- callEnv e args params
-            (e'', expr') <- evalBody e' body
-            return (setGlobalScope e (global e'') , fromMaybe zeroExpr expr')
+            (e', args') <- evalAllExpr e args
+            ce <- callEnv e' args' params
+            (ce', expr') <- evalBody ce body
+            return (popScope ce', fromMaybe zeroExpr expr')
         _ -> Err $ n ++ " is not callable"

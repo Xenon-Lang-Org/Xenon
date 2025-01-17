@@ -9,7 +9,8 @@ module Utils.Data.Result
     isErr,
     both,
     mapBoth,
-    allOk
+    allOk,
+    buildUp
   )
 where
 import Control.Applicative (Alternative (empty), (<|>))
@@ -167,3 +168,10 @@ allOk ((Err m):_) = Err m
 allOk ((Ok x): xs) = case allOk xs of
   Ok xs' -> Ok $ x : xs'
   Err m -> Err m
+
+buildUp :: (b -> a -> Result e (b, c)) -> b -> [a] -> Result e (b, [c])
+buildUp _ acc [] = Ok (acc, [])
+buildUp f acc (x:xs) = do
+  (acc', x') <- f acc x
+  (a'', xs') <- buildUp f acc' xs
+  return (a'', x':xs')
