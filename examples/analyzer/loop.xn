@@ -1,0 +1,10 @@
+// Test 6: Loops
+fn count_to(n: i32) -> i32 {
+    let i: mut i32 = 0;
+    while (i < n) {
+        i = i + 1;
+    }
+    return i;
+}
+
+count_to(10);

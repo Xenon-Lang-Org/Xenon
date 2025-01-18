@@ -1,0 +1,14 @@
+// Test 1: Variable declaration and mutability
+
+let a: mut i32 = 10;
+
+fn test() -> i32 {
+    let immutable_var: i32 = 42;
+    let mutable_var: mut i32 = 42;
+    let uninit_var: i32;  //! Should error: uninitialized
+
+    mutable_var = 43;
+    a = 13;
+    immutable_var = 43;   //! Should error: immutable
+    return a;
+}
