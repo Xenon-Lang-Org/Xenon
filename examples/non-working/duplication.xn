@@ -1,4 +1,4 @@
-//! should not work
+//! Should error: naming conflict
 fn scope_test(x: i32) -> i32 {
     let result: i32 = 0;
     if (x > 0) {

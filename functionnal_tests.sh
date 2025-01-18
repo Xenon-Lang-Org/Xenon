@@ -40,15 +40,56 @@ test_cases=(
   "bitwise"             "10 4"            "bitwise"       "28"
   "sum_digits"          "123"             "sum_digits"    "6"
   "sum_digits"          "1018"            "sum_digits"    "10"
+  "conditionnal"        "10"              "test_if"       "1"
+  "conditionnal"        "-10"             "test_if"       "11"
+  "count_to"            "10"              "count_to"      "10"
 )
+
+non_working_test_cases=(
+  "duplication"
+  "loop_return"
+  "no_return"
+  "partial_return"
+  "type"
+  "variable_immut"
+  "variable_uninit"
+)
+
+echo "--- Running tests ---"
+echo ""
+echo "Compiling non-working .xn files"
+echo ""
+
+# Compile non working (return should not be 0, should not compile)
+for ((i=0; i<${#non_working_test_cases[@]}; i++)); do
+  xn_file="examples/non-working/${non_working_test_cases[i]}.xn"
+  wasm_file="examples/non-working/${non_working_test_cases[i]}.wasm"
+  set +e
+  output=$(./xcc "$xn_file" -o "$wasm_file" 2>&1)
+  exit_code=$?
+  set -e
+  if [ $exit_code -eq 0 ]; then
+    echo -e "\e[31m$xn_file should not compile\e[0m"
+  else
+    echo -e "\e[32m$xn_file does not compile\e[0m"
+  fi
+done
+
+echo ""
+echo "Compiling working .xn files"
+echo ""
 
 # Compile all
 for ((i=0; i<${#test_cases[@]}; i+=4)); do
   xn_file="examples/${test_cases[i]}.xn"
   wasm_file="examples/${test_cases[i]}.wasm"
   ./xcc "$xn_file" -o "$wasm_file" \
-    || { echo -e "\e[31mFailed to compile $xn_file\e[0m"; exit 1; }
+    || { echo -e "\e[31mFailed to compile $xn_file\e[0m"; rm examples/*.wasm && exit 1; }
 done
+
+echo ""
+echo "Running tests"
+echo ""
 
 # Run and check results
 for ((i=0; i<${#test_cases[@]}; i+=4)); do
@@ -79,5 +120,7 @@ for ((i=0; i<${#test_cases[@]}; i+=4)); do
   fi
 done
 
+
 # Clean up
 rm examples/*.wasm
+rm examples/non-working/*.wasm

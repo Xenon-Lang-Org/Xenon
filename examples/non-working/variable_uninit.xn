@@ -1,0 +1,6 @@
+//! Should error: uninitialized
+fn test() -> i32 {
+    let uninit_var: i32;
+
+    return uninit_var
+}

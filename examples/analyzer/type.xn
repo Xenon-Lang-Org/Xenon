@@ -1,6 +1,0 @@
-// Test 4: Type checking
-let float_var: i32 = 42;
-let wrong_type: f32 = 42.0;
-
-//! let float_var: f32 = 42;
-//! let wrong_type: i32 = 42.0;

@@ -14,7 +14,7 @@ compile filename output = do
             case analyze ast of
                 Right result -> do
                     let filledModule = fillWASMModuleFromAST (finalAst result)
-                    printModule filledModule
+                    -- printModule filledModule
                     writeWasmModule output filledModule
                 Left analyzeErr -> error $ show analyzeErr
         Err err -> print err
