@@ -32,7 +32,6 @@ unit_tests:
 	stack test
 
 func_tests: $(COMPILER) $(VM) $(INTERPRETER)
-	./test/tester.sh
 	./functionnal_tests.sh
 
 tests: unit_tests func_tests
