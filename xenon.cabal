@@ -23,7 +23,6 @@ source-repository head
 
 library
   exposed-modules:
-      Analyzer.IR
       Analyzer.SemanticAnalyzer
       Compiler.Data.ModuleData
       Compiler.System.EncodeNumbers

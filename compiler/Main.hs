@@ -14,10 +14,12 @@ compile filename output = do
             case analyze ast of
                 Right result -> do
                     let filledModule = fillWASMModuleFromAST (finalAst result)
-                    -- printModule filledModule
+                    printModule filledModule
                     writeWasmModule output filledModule
                 Left analyzeErr -> error $ show analyzeErr
-        Err err -> print err
+        Err err -> error $ show err
+            
+            
 
 checkFileName :: String -> Bool
 checkFileName filename = (length filename) > 3 && (drop (length filename - 3) filename) == ".xn"
