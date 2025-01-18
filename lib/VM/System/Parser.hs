@@ -100,10 +100,10 @@ parseOneFuncType = do
     then fail "Expected form=0x60 for func type"
     else do
       pCount <- getU32LEB
-      skip (fromIntegral pCount)
+      paramTypes <- replicateM (fromIntegral pCount) getValType
       rCount <- getU32LEB
-      skip (fromIntegral rCount)
-      return $ FuncType (fromIntegral pCount) (fromIntegral rCount)
+      returnTypes <- replicateM (fromIntegral rCount) getValType
+      return $ FuncType (fromIntegral pCount) paramTypes (fromIntegral rCount) returnTypes
 
 parseFuncSection :: Module -> Word32 -> Get Module
 parseFuncSection mod0 secSize = do
