@@ -148,14 +148,16 @@ validateParams ctx = mapM validateField
 
 -------------------------------------------------------------------------------
 -- |check if a function has a return statement
+  -- If without else doesn't guarantee return
+  -- While loop doesn't guarantee return
 -------------------------------------------------------------------------------
 hasReturnStatement :: [Statement] -> Bool
 hasReturnStatement [] = False
 hasReturnStatement (ReturnStatement _:_) = True
 hasReturnStatement (If _ thenStmts (Just elseStmts):_) = 
     hasReturnStatement thenStmts && hasReturnStatement elseStmts
-hasReturnStatement (If _ _ Nothing:_) = False  -- If without else doesn't guarantee return
-hasReturnStatement (WhileLoop _ _:_) = False   -- While loop doesn't guarantee return
+hasReturnStatement (If _ _ Nothing:_) = False
+hasReturnStatement (WhileLoop _ _:_) = False   
 hasReturnStatement (_:rest) = hasReturnStatement rest
 
 analyzeWhile :: AnalysisContext -> Expression -> [Statement] 
@@ -201,7 +203,6 @@ analyzeReturn ctx expr = case currentFunction ctx of
 
 analyzeAssignment :: AnalysisContext -> String -> Expression -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
 analyzeAssignment ctx name expr = 
-  -- First check in current scope, then in global scope
   case Map.lookup name (variables ctx) of
     Just (varType, _, isMut) -> checkAndAssign ctx name varType isMut expr
     Nothing -> Left [UndefinedVariable name]
