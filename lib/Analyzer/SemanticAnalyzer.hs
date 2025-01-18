@@ -125,19 +125,23 @@ analyzeFuncDecl ctx name params retType body =
         Right validatedParams -> 
           let funcCtx = ctx { 
                 currentFunction = Just (name, validatedRetType),
+                functions = Map.insert name (validatedParams, validatedRetType) (functions ctx), -- Ajout ici
                 variables = foldr (\(pName, pType) vars -> 
-                  Map.insert pName (pType, True, False) vars) 
+                  let isMutable = case pType of
+                        PrimitiveType Mutable _ -> True
+                        PointerType Mutable _ -> True
+                        _ -> False
+                  in Map.insert pName (pType, True, isMutable) vars)
                   (variables ctx) 
                   validatedParams
               }
           in case analyzeStatements (enterScope funcCtx) body of
             Right (_, bodyErrs) -> 
               if validatedRetType /= PrimitiveType Immutable I32
-                then Right (ctx { functions = newFuncs }, bodyErrs)
+                then Right (ctx { functions = Map.insert name (validatedParams, validatedRetType) (functions ctx) }, bodyErrs)
                 else if not (hasReturnStatement body) 
                        then Left [MissingReturnStatement name]
-                       else Right (ctx { functions = newFuncs }, bodyErrs)
-              where newFuncs = Map.insert name (validatedParams, validatedRetType) (functions ctx)
+                       else Right (ctx { functions = Map.insert name (validatedParams, validatedRetType) (functions ctx) }, bodyErrs)
             Left err -> Left err
 
 validateParams :: AnalysisContext -> [Field] -> Either [AnalysisError] [Field]
@@ -154,10 +158,10 @@ validateParams ctx = mapM validateField
 hasReturnStatement :: [Statement] -> Bool
 hasReturnStatement [] = False
 hasReturnStatement (ReturnStatement _:_) = True
-hasReturnStatement (If _ thenStmts (Just elseStmts):_) = 
-    hasReturnStatement thenStmts && hasReturnStatement elseStmts
-hasReturnStatement (If _ _ Nothing:_) = False
-hasReturnStatement (WhileLoop _ _:_) = False   
+hasReturnStatement (If _ thenStmts (Just elseStmts):xs) = 
+    hasReturnStatement thenStmts && hasReturnStatement elseStmts || hasReturnStatement xs
+hasReturnStatement (If _ _ Nothing:xs) = hasReturnStatement xs
+hasReturnStatement (WhileLoop _ _:xs) = hasReturnStatement xs
 hasReturnStatement (_:rest) = hasReturnStatement rest
 
 analyzeWhile :: AnalysisContext -> Expression -> [Statement] 
