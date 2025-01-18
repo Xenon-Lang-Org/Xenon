@@ -131,7 +131,9 @@ data WasmFunction = WasmFunction
 
 data FuncType = FuncType
   { ftParamCount  :: Int
+  , ftParamTypes  :: [ValType]
   , ftResultCount :: Int
+  , ftResultTypes :: [ValType]
   } deriving (Show)
 
 data Export = Export

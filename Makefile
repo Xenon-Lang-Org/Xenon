@@ -13,7 +13,7 @@ $(COMPILER): all
 	cp $(BIN_DIR)/compiler ./$(COMPILER)
 
 $(VM): all
-	cp $(BIN_DIR)/wasm-vm ./$(VM)
+	cp $(BIN_DIR)/vm ./$(VM)
 
 $(INTERPRETER): all
 	cp $(BIN_DIR)/interpreter ./$(INTERPRETER)
