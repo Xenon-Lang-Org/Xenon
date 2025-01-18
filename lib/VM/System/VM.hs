@@ -1,13 +1,14 @@
 module VM.System.VM
   ( VM (..),
     invokeByNameWithArgs,
+    getParamTypesByName,
   )
 where
 
 import Data.List (find)
 import VM.Data.AST
   ( Export (exportIndex, exportName),
-    FuncType (ftResultCount),
+    FuncType (ftParamTypes, ftResultCount),
     Global (Global),
     Module
       ( modExports,
@@ -26,15 +27,34 @@ import VM.Data.VMTypes
   )
 import VM.System.VMOpcodes (executeInstruction)
 
-invokeByNameWithArgs :: Module -> String -> [Value] -> Either String VM
-invokeByNameWithArgs modAST funcName rawArgs = do
+getFnIndexByName :: Module -> String -> Either String Int
+getFnIndexByName modAST funcName = do
   let mExport = find (\e -> exportName e == funcName) (modExports modAST)
   case mExport of
     Nothing ->
       Left $ "No exported function named " ++ show funcName
     Just expRec ->
-      let fnIndex = exportIndex expRec
-       in callExportedFunction modAST fnIndex rawArgs
+      Right $ exportIndex expRec
+
+invokeByNameWithArgs :: Module -> String -> [Value] -> Either String VM
+invokeByNameWithArgs modAST funcName rawArgs = case getFnIndexByName modAST funcName of
+  Left err -> Left err
+  Right idx -> callExportedFunction modAST idx rawArgs
+
+getParamTypesByName :: Module -> String -> Either String [ValType]
+getParamTypesByName modAST funcName = case getFnIndexByName modAST funcName of
+  Left err -> Left err
+  Right idx -> Right $ getParamTypes modAST idx
+
+-- invokeByNameWithArgs :: Module -> String -> [Value] -> Either String VM
+-- invokeByNameWithArgs modAST funcName rawArgs = do
+--   let mExport = find (\e -> exportName e == funcName) (modExports modAST)
+--   case mExport of
+--     Nothing ->
+--       Left $ "No exported function named " ++ show funcName
+--     Just expRec ->
+--       let fnIndex = exportIndex expRec
+--        in callExportedFunction modAST fnIndex rawArgs
 
 callExportedFunction :: Module -> Int -> [Value] -> Either String VM
 callExportedFunction modAST fnIndex paramVals = do
@@ -47,7 +67,6 @@ callExportedFunction modAST fnIndex paramVals = do
               { vmModule = modAST,
                 vmFrames = [],
                 operandStack = [],
-                vmMemory = replicate (64 * 1024) 0,
                 vmGlobals = initialGlobals,
                 vmTable = []
               }
@@ -122,3 +141,9 @@ getReturnCount vm fnIdx =
       typeIndex = modFuncTypes m !! fnIdx
       fType = modTypes m !! typeIndex
    in ftResultCount fType
+
+getParamTypes :: Module -> Int -> [ValType]
+getParamTypes m fnIdx =
+  let typeIndex = modFuncTypes m !! fnIdx
+      fType = modTypes m !! typeIndex
+   in ftParamTypes fType

@@ -4,7 +4,6 @@ module VM.Data.VMTypes
   , Label(..)
   ) where
 
-import Data.Word (Word8)
 import VM.Data.AST (Value(..), Module(..))
 
 data Label = Label
@@ -24,7 +23,6 @@ data VM = VM
   { vmModule     :: Module
   , vmFrames     :: [Frame]
   , operandStack :: [Value]
-  , vmMemory     :: [Word8]
   , vmGlobals    :: [Value]
   , vmTable      :: [Int]
   } deriving (Show)

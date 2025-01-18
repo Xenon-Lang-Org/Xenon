@@ -45,7 +45,8 @@ loop :: Env -> InputT IO ()
 loop e = do
     mline <- getInputLine ">> "
     case mline of
-        Nothing -> loop e
+        Nothing -> do
+            outputStrLn ""
         Just line -> do
             e' <- liftIO $ processLine e line
             loop e'

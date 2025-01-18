@@ -235,7 +235,7 @@ detectValueType expr locMap globalMap =
 
     BinaryOp _ left _ -> detectValueType left locMap globalMap
 
-    _ -> error "Unsupported expression"
+    _ -> error $ "Unsupported expression" ++ show expr
 
 mkBinOpInstruction :: BinOp -> ValueType -> Instruction
 mkBinOpInstruction op vt = case op of
