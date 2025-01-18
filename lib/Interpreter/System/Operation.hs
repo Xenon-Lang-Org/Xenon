@@ -68,6 +68,7 @@ evalBinFloat op l r = case op of
 
 evalBinBits :: NumBits a => BinOp -> a -> a -> a
 evalBinBits op l r = case op of
+    Div -> l `div` r
     Mod -> l `mod` r
     BitAnd -> (.&.) l r
     BitOr -> (.|.) l r
@@ -89,7 +90,6 @@ bitsBinEval op l r = case mapBoth toNumBits (l, r) of
     Err msg -> Err msg
 
 evalBinOp :: BinOp -> Expression -> Expression -> Result String Expression
-evalBinOp Div l r = floatBinEval Div l r
 evalBinOp op l r = bitsBinEval op l r <|> floatBinEval op l r
 
 -- Unary Operations

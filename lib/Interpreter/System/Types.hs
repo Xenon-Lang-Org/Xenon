@@ -9,33 +9,34 @@ where
 import Utils.Data.Result
 import Parser.Data.Ast
 import Interpreter.Data.Environment
-import Data.Ord (clamp) 
 
-clampInt :: Primitive -> Integer -> Integer
-clampInt I8 = clamp (-128, 127)
-clampInt U8 = clamp (0, 255)
-clampInt I16 = clamp (-32768, 32767)
-clampInt U16 = clamp (0, 65535)
-clampInt I32 = clamp (-2147483648, 2147483647)
-clampInt U32 = clamp (0, 4294967295)
-clampInt I64 = clamp (-9223372036854775808, 9223372036854775807)
-clampInt U64 = clamp (0, 18446744073709551615)
-clampInt _ = id
+wrapSigned :: Integer -> Integer -> Integer
+wrapSigned n s = (n `mod` s) - (if n `mod` s >= (s `div` 2) then s else 0)
 
-clampFloat :: Primitive -> Double -> Double
-clampFloat F32 n = realToFrac (realToFrac n :: Float)
-clampFloat _ n = n
+castInteger :: Primitive -> Integer -> Integer
+castInteger I8 n = n `wrapSigned` 256
+castInteger I16 n = n `wrapSigned` 65536
+castInteger I32 n = n `wrapSigned` 4294967296
+castInteger I64 n = n `wrapSigned` 18446744073709551616
+castInteger U8 n = n `mod` 256
+castInteger U16 n = n `mod` 65536
+castInteger U32 n = n `mod` 4294967296
+castInteger U64 n = n `mod` 18446744073709551616
+castInteger _ n = n
+
+castDouble :: Primitive -> Double -> Double
+castDouble _ n = n
 
 isFloat :: Primitive -> Bool
 isFloat t = t `elem` [F32, F64]
 
 castLiteral :: Literal -> Primitive -> Literal
 castLiteral (IntLiteral n) t = if isFloat t
-    then FloatLiteral $ clampFloat t (fromIntegral n)
-    else IntLiteral $ clampInt t n
+    then FloatLiteral $ castDouble t (fromIntegral n)
+    else IntLiteral $ castInteger t n
 castLiteral (FloatLiteral n) t = if isFloat t
-    then FloatLiteral $ clampFloat t n
-    else IntLiteral $ clampInt t (round n)
+    then FloatLiteral $ castDouble t n
+    else IntLiteral $ castInteger t (round n)
 
 castExpr :: Env -> Expression -> Type -> Result String Expression
 castExpr _ (ELiteral l) (PrimitiveType _ t) = Ok $ ELiteral $ castLiteral l t

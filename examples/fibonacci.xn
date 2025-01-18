@@ -1,0 +1,11 @@
+fn fibo(n: i32) -> i32
+{
+    if (n < 2) {
+        return n;
+    }
+    // return fibo(n - 1) + fibo(n - 2); FAILS
+
+    let a: i32 = fibo(n - 1);
+    let b: i32 = fibo(n - 2);
+    return a + b;
+}
