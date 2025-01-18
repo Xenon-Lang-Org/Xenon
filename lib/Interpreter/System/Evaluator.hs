@@ -5,7 +5,8 @@ module Interpreter.System.Evaluator
         evalStatement,
         evalBody,
         evalBodyPrint,
-        evalProg
+        evalProg,
+        isStatic
     )
 where
 
@@ -64,6 +65,14 @@ evalCastExpr e t expr = case evalExpr e expr of
         Ok expr'' -> Ok (e', expr'') 
         Err m -> Err m
     Err m -> Err m
+
+isStatic :: Expression -> Bool
+isStatic (Variable {}) = False
+isStatic (ELiteral {}) = True
+isStatic (BinaryOp _ l r) = isStatic l && isStatic r 
+isStatic (UnaryOp _ ex) = isStatic ex
+isStatic (Parenthesis ex) = isStatic ex
+isStatic (FunctionCall {}) = False
 
 -- Statement
 

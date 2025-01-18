@@ -10,7 +10,8 @@ module Utils.Data.Result
     both,
     mapBoth,
     allOk,
-    buildUp
+    buildUp,
+    mapAll
   )
 where
 import Control.Applicative (Alternative (empty), (<|>))
@@ -168,6 +169,13 @@ allOk ((Err m):_) = Err m
 allOk ((Ok x): xs) = case allOk xs of
   Ok xs' -> Ok $ x : xs'
   Err m -> Err m
+
+mapAll :: (a -> Result e b) -> [a] -> Result e [b]
+mapAll _ [] = Ok []
+mapAll f (x:xs) = do
+  x' <- f x
+  xs' <- mapAll f xs
+  return (x':xs')
 
 buildUp :: (b -> a -> Result e (b, c)) -> b -> [a] -> Result e (b, [c])
 buildUp _ acc [] = Ok (acc, [])
