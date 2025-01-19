@@ -256,8 +256,8 @@ operatorTable =
   [ [ Prefix (UnaryOp Negate <$ matchTokenType TNot),
       Prefix (UnaryOp Dereference <$ matchTokenType TDereference),
       Prefix (UnaryOp AddressOf <$ matchTokenType TAddressOf),
-      Prefix (UnaryOp BitNot <$ matchTokenType TNor)
-      -- Prefix (UnaryOp Negative <$ matchTokenType TMinus) // TODO implement negative operator
+      Prefix (UnaryOp BitNot <$ matchTokenType TNor),
+      Prefix (UnaryOp Negative <$ matchTokenType TMinus) -- TODO implement negative operator
     ],
     [ InfixL (BinaryOp Mul <$ matchTokenType TMult),
       InfixL (BinaryOp Div <$ matchTokenType TDiv),
