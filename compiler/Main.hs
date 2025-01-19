@@ -8,6 +8,7 @@ import Analyzer.SemanticAnalyzer
 import System.Exit (exitWith, ExitCode (ExitFailure))
 import Parser.Data.Ast
 import Interpreter.System.Optimizer
+import Analyzer.CheckValue
 
 compilerParse :: String -> IO Program
 compilerParse filename = do
@@ -34,12 +35,16 @@ compilerAnalyse p = case analyze p of
 
 compile :: String -> String -> IO ()
 compile filename output = do
-    prog <- compilerParse filename
-    analyzedProg <- compilerAnalyse prog
-    optimizedProg <- compilerOptimize analyzedProg
-    let filledModule = fillWASMModuleFromAST optimizedProg
-    printModule filledModule
-    writeWasmModule output filledModule
+    prog@(Program b) <- compilerParse filename
+    if any isInvalidRootStatement b then do
+        putStrLn "\ESC[31mError: Invalid statement found at root level.\ESC[97m"
+        exitWith $ ExitFailure 84
+    else do
+        analyzedProg <- compilerAnalyse prog
+        optimizedProg <- compilerOptimize analyzedProg
+        let filledModule = fillWASMModuleFromAST optimizedProg
+        printModule filledModule
+        writeWasmModule output filledModule
 
 checkFileName :: String -> Bool
 checkFileName filename = (length filename) > 3 && (drop (length filename - 3) filename) == ".xn"
