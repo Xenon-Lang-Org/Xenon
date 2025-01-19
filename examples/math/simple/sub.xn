@@ -1,0 +1,47 @@
+fn sub_i32(a: i32, b: i32) -> i32
+{
+    return a - b;
+}
+
+// TEST "sub_i32" IN "3 5" OUT "-2"
+// TEST "sub_i32" IN "-2 7" OUT "-9"
+// TEST "sub_i32" IN "0 0" OUT "0"
+// TEST "sub_i32" IN "0 1" OUT "-1"
+// TEST "sub_i32" IN "1 0" OUT "1"
+// TEST "sub_i32" IN "2147483647 -1" OUT "-2147483648"
+// TEST "sub_i32" IN "-2147483648 1" OUT "2147483647"
+
+fn sub_i64(a: i64, b: i64) -> i64
+{
+    return a - b;
+}
+
+// TEST "sub_i64" IN "3 5" OUT "-2"
+// TEST "sub_i64" IN "-2 7" OUT "-9"
+// TEST "sub_i64" IN "0 0" OUT "0"
+// TEST "sub_i64" IN "0 1" OUT "-1"
+// TEST "sub_i64" IN "1 0" OUT "1"
+// TEST "sub_i64" IN "9223372036854775807 -1" OUT "-9223372036854775808"
+// TEST "sub_i64" IN "-9223372036854775808 1" OUT "9223372036854775807"
+
+fn sub_f32(a: f32, b: f32) -> f32
+{
+    return a - b;
+}
+
+// TEST "sub_f32" IN "3.3 5.5" OUT "-2.2"
+// TEST "sub_f32" IN "-2.2 7.7" OUT "-9.9"
+// TEST "sub_f32" IN "0.0 0.0" OUT "0.0"
+// TEST "sub_f32" IN "0.0 1.0" OUT "-1.0"
+// TEST "sub_f32" IN "1.0 0.0" OUT "1.0"
+
+fn sub_f64(a: f64, b: f64) -> f64
+{
+    return a - b;
+}
+
+// TEST "sub_f64" IN "3.3 5.5" OUT "-2.2"
+// TEST "sub_f64" IN "-2.2 7.7" OUT "-9.9"
+// TEST "sub_f64" IN "0.0 0.0" OUT "0.0"
+// TEST "sub_f64" IN "0.0 1.0" OUT "-1.0"
+// TEST "sub_f64" IN "1.0 0.0" OUT "1.0"

@@ -1,0 +1,21 @@
+fn rem_i32(a: i32, b: i32) -> i32
+{
+    return a % b;
+}
+
+// TEST "rem_i32" IN "10 3" OUT "1"
+// TEST "rem_i32" IN "-14 5" OUT "-4"
+// TEST "rem_i32" IN "10 4" OUT "2"
+// TEST "rem_i32" IN "1 2" OUT "1"
+// TEST "rem_i32" IN "2147483647 2" OUT "1"
+
+fn rem_i64(a: i64, b: i64) -> i64
+{
+    return a % b;
+}
+
+// TEST "rem_i64" IN "10 3" OUT "1"
+// TEST "rem_i64" IN "-14 5" OUT "-4"
+// TEST "rem_i64" IN "10 4" OUT "2"
+// TEST "rem_i64" IN "1 2" OUT "1"
+// TEST "rem_i64" IN "9223372036854775807 3" OUT "1"

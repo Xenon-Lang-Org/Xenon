@@ -1,0 +1,57 @@
+fn pow(n: i32, p: i32) -> i32
+{
+    let i: mut i32 = 1;
+    let res: mut i32 = n;
+
+    if (p == 0) {
+        return 1;
+    }
+    if (p == 1) {
+        return n;
+    }
+    while (i < p) {
+        res = res * n;
+        i = i + 1;
+    }
+    return res;
+}
+
+// TEST "pow" IN "2 3" OUT "8"
+
+fn is_prime(nb: i32) -> i32
+{
+    let i: mut i32 = 2;
+
+    if (nb == 0 || nb == 1) {
+        return 0;
+    }
+    while (i < nb) {
+        if (nb % i == 0) {
+            return 0;
+        }
+        i = i + 1;
+    }
+    return 1;
+}
+
+// TEST "is_prime" IN "5" OUT "1"
+
+fn add(a: i32, b: i32) -> i32
+{
+    return a + b;
+}
+
+// TEST "add" IN "4 6" OUT "10"
+
+let b: i32 = 8;
+
+fn main() -> i32
+{
+    let a: i32 = add(is_prime(2), is_prime(3));
+    let result: mut i32 = 0;
+
+    result = pow(a, b);
+    return result;
+}
+
+// TEST "main" IN "" OUT "256"

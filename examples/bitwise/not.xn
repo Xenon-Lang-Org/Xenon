@@ -1,0 +1,21 @@
+fn not_i32(a: i32) -> i32
+{
+    let res: i32 = ~a;
+    return res;
+}
+
+// TEST "not_i32" IN "0" OUT "-1"
+// TEST "not_i32" IN "1" OUT "-2"
+// TEST "not_i32" IN "2" OUT "-3"
+// TEST "not_i32" IN "3" OUT "-4"
+
+fn not_i64(a: i64) -> i64
+{
+    let res: i64 = ~a;
+    return res;
+}
+
+// TEST "not_i64" IN "0" OUT "-1"
+// TEST "not_i64" IN "9223372036854775807" OUT "-9223372036854775808"
+// TEST "not_i64" IN "2" OUT "-3"
+// TEST "not_i64" IN "-9223372036854775808" OUT "9223372036854775807"
