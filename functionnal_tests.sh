@@ -63,6 +63,8 @@ echo ""
 echo -e "\e[34mCompiling non-working .xn files\e[0m"
 echo ""
 
+returned=0
+
 # Compile non working (return should not be 0, should not compile)
 for ((i=0; i<${#non_working_test_cases[@]}; i++)); do
   xn_file="examples/non-working/${non_working_test_cases[i]}.xn"
@@ -74,6 +76,7 @@ for ((i=0; i<${#non_working_test_cases[@]}; i++)); do
   if [ $exit_code -eq 0 ]; then
     echo -e "\e[31m$xn_file should not compile\e[0m"
     rm "$wasm_file"
+    returned=1
   else
     echo -e "\e[32m$xn_file does not compile\e[0m"
   fi
@@ -96,6 +99,7 @@ for ((i=0; i<${#test_cases[@]}; i+=4)); do
   else
     echo -e "\e[31mFailed to compile $xn_file\e[0m"
     echo "$output"
+    returned=1
   fi
 done
 
@@ -117,7 +121,10 @@ for ((i=0; i<${#test_cases[@]}; i+=4)); do
     continue
   fi
 
-  wasmer_output=$(wasmer run "$wasm_file" --invoke "$function" $args 2>&1 || echo "error")
+  # for wasmer args, we change all occurences of "-" to "-- -" (i.e. -1 becomes -- -1)
+  wasmer_args=$(echo "$args" | sed 's/-/-- -/g')
+
+  wasmer_output=$(wasmer run "$wasm_file" --invoke "$function" $wasmer_args 2>&1 || echo "error")
   wasm_vm_output=$(./xrun "$wasm_file" --invoke "$function" $args 2>&1 || echo "error")
   wasm_vm_last_line=$(echo "$wasm_vm_output" | tail -n1)
 
@@ -135,8 +142,22 @@ for ((i=0; i<${#test_cases[@]}; i+=4)); do
     echo "Wasmer Output: $wasmer_output"
     echo "vm Output: $wasm_vm_output"
     echo "xin Output: $xin_last_line"
+    returned=1
   fi
 done
 
 # Clean up
 rm examples/*.wasm
+
+# Return
+if [ $returned -eq 0 ]; then
+  echo ""
+  echo -e "\e[32mAll tests passed\e[0m"
+  echo ""
+  exit 0
+else
+  echo ""
+  echo -e "\e[31mSome tests failed\e[0m"
+  echo ""
+  exit 1
+fi

@@ -9,7 +9,7 @@ run-lisp
 *.o
 *.hi
 .bashrc
-result.wasm
+*.wasm
 xcc
 xrun
 xin
