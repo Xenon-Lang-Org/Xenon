@@ -1,7 +1,8 @@
 module Interpreter.System.Operation
     (
         evalBinOp,
-        evalUnaryOp
+        evalUnaryOp,
+        evalSizedBinOp
     )
 where
 
@@ -73,15 +74,19 @@ evalBinFloat op l r = case op of
     Div -> l / r
     _ -> evalBin op l r
 
-evalBinBits :: NumBits a => BinOp -> a -> a -> a
-evalBinBits op l r = case op of
+evalBinBits :: NumBits a => Int -> BinOp -> a -> a -> a
+evalBinBits s op l r = case op of
     Div -> l `div` r
     Mod -> l `rem` r
     BitAnd -> (.&.) l r
     BitOr -> (.|.) l r
     BitXor -> (.^.) l r
-    Shl -> l `shiftL` fromIntegral r
-    Shr -> l `shiftR` fromIntegral r
+    Shl -> if s == 0 
+        then l `shiftL` fromIntegral r
+        else l `shiftL` fromIntegral (r .&. fromIntegral (s - 1))
+    Shr -> if s == 0 
+        then l `shiftR` fromIntegral r
+        else l `shiftR` fromIntegral (r .&. fromIntegral (s - 1))
     _ -> evalBin op l r
 
 floatBinEval :: BinOp -> Expression -> Expression -> Result String Expression
@@ -91,13 +96,16 @@ floatBinEval op l r = case mapBoth toNumFloat (l, r) of
     Ok (l', r') -> Ok $ ELiteral $ FloatLiteral $ roundNumFloat $ evalBinFloat op l' r'
     Err msg -> Err msg
 
-bitsBinEval :: BinOp -> Expression -> Expression -> Result String Expression
-bitsBinEval op l r = case mapBoth toNumBits (l, r) of
-    Ok (l', r') -> Ok $ ELiteral $ IntLiteral $ evalBinBits op l' r'
+bitsBinEval :: Int -> BinOp -> Expression -> Expression -> Result String Expression
+bitsBinEval s op l r = case mapBoth toNumBits (l, r) of
+    Ok (l', r') -> Ok $ ELiteral $ IntLiteral $ evalBinBits s op l' r'
     Err msg -> Err msg
 
 evalBinOp :: BinOp -> Expression -> Expression -> Result String Expression
-evalBinOp op l r = bitsBinEval op l r <|> floatBinEval op l r
+evalBinOp op l r = bitsBinEval 0 op l r <|> floatBinEval op l r
+
+evalSizedBinOp :: Int -> BinOp -> Expression -> Expression -> Result String Expression
+evalSizedBinOp s op l r = bitsBinEval s op l r <|> floatBinEval op l r
 
 -- Unary Operations
 

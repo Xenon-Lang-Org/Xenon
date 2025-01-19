@@ -5,7 +5,8 @@ module Interpreter.System.Types
         defaultExpr,
         isMutable,
         isPrimitive,
-        isFloat
+        isFloat,
+        typeSize
     )
 where
 
@@ -75,3 +76,8 @@ isMutable _ = False
 isPrimitive :: Type -> Bool
 isPrimitive (PrimitiveType {}) = True
 isPrimitive _ = False
+
+typeSize :: Type -> Int
+typeSize (PrimitiveType _ I64) = 64;
+typeSize (PrimitiveType _ F64) = 64;
+typeSize _ = 32;
