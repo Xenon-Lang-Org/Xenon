@@ -23,22 +23,28 @@ jobs:
       - name: Build
         run: stack build
 
-      - name: Package Binary
+      - name: Package Binaries
         run: |
           mkdir -p release/
-          cp $(stack path --local-install-root)/bin/* release/glados
-          tar czf glados-${{ github.ref_name }}.tar.gz release/
+          cp $(stack path --local-install-root)/xrun release/
+          cp $(stack path --local-install-root)/xin release/
+          cp $(stack path --local-install-root)/xcc release/
+          cp $(stack path --local-install-root)/xtest release/
+          tar czf xenon-${{ github.ref_name }}.tar.gz release/
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            glados-${{ github.ref_name }}.tar.gz
+            xenon-${{ github.ref_name }}.tar.gz
           body: |
-            GLaDOS Release ${{ github.ref_name }}
+            Xenon Release ${{ github.ref_name }}
             
             ## How to Install
             ```bash
-            tar xzf glados-${{ github.ref_name }}.tar.gz
-            ./release/glados
+            tar xzf xenon-${{ github.ref_name }}.tar.gz
+            ./release/xrun
+            ./release/xin
+            ./release/xcc
+            ./release/xtest
             ```
