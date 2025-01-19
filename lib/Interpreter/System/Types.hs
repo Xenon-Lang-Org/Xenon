@@ -3,7 +3,9 @@ module Interpreter.System.Types
         castExpr,
         toBool,
         defaultExpr,
-        isMutable
+        isMutable,
+        isPrimitive,
+        isFloat
     )
 where
 
@@ -69,3 +71,7 @@ isMutable (ArrayType Mutable _) = True
 isMutable (EnumType Mutable _) = True
 isMutable (CustomType Mutable _) = True
 isMutable _ = False
+
+isPrimitive :: Type -> Bool
+isPrimitive (PrimitiveType {}) = True
+isPrimitive _ = False

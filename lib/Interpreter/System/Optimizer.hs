@@ -73,11 +73,80 @@ addInlinableFunc e (FunctionDeclaration n p rt b)
         _ -> (pushEnv e (EFunction n p rt b), True)
 addInlinableFunc e _ = (e, False)
 
+-- Loop
+
+isStaticOrVar :: String -> Expression -> Bool
+isStaticOrVar n (Variable vn) = n == vn
+isStaticOrVar _ (ELiteral {}) = True
+isStaticOrVar n (BinaryOp _ l r) = isStaticOrVar n l && isStaticOrVar n r 
+isStaticOrVar n (UnaryOp _ ex) = isStaticOrVar n ex
+isStaticOrVar n (Parenthesis ex) = isStaticOrVar n ex
+isStaticOrVar _ (FunctionCall {}) = False
+
+modifiesVariable :: String -> Body -> Bool
+modifiesVariable _ [] = False
+modifiesVariable n (VariableReAssignment vn _:xs) = n == vn || modifiesVariable n xs
+modifiesVariable n (If _ b eb : xs) = any (modifiesVariable n) [b, fromMaybe [] eb, xs]
+modifiesVariable n (WhileLoop _ b:xs) = any (modifiesVariable n) [b, xs]
+modifiesVariable n (_:xs) = modifiesVariable n xs
+
+unrollingStep :: Env -> String -> Body -> Result String Env
+unrollingStep e _ [] = Ok e
+unrollingStep e n (VariableReAssignment vn v:xs) | n == vn = if isStaticOrVar n v
+    then do
+        (e', v') <- evalExpr e v
+        e'' <- assignVar e' n v'
+        unrollingStep e'' n xs
+    else Err "Reassignment is not static"
+unrollingStep _ n (FunctionDeclaration {}:_) =
+    Err "Loop unrolling with nested function declaration is not supported"
+unrollingStep e n (WhileLoop _ b:xs) = if modifiesVariable n b
+    then Err "Cannot unroll loop"
+    else unrollingStep e n xs
+unrollingStep e n (If _ b eb :xs) = if any (modifiesVariable n) [b, fromMaybe [] eb]
+    then Err "Cannot unroll loop"
+    else unrollingStep e n xs
+unrollingStep e n (_:xs) = unrollingStep e n xs
+
+countUnrolling :: Env -> String -> Expression -> Body -> Int -> Result String Int
+countUnrolling _ _ _ _ 17 = Err "Unrolling limit reached"
+countUnrolling e n cond b nb = do
+    (e', cond') <- evalExpr e cond
+    if not (toBool cond')
+        then Ok nb
+        else do
+            e'' <- unrollingStep e' n b
+            countUnrolling e'' n cond b (nb + 1)
+
+replicateLoop :: Int -> Body -> Body
+replicateLoop n b = concat (replicate n b)
+
+getUsedVariables :: [String] -> Expression -> [String]
+getUsedVariables v (Variable vn) = if vn `elem` v then v else vn:v
+getUsedVariables v (ELiteral {}) = v
+getUsedVariables v (BinaryOp _ l r) = getUsedVariables (getUsedVariables v l) r 
+getUsedVariables v (UnaryOp _ ex) = getUsedVariables v ex
+getUsedVariables v (Parenthesis ex) = getUsedVariables v ex
+getUsedVariables v (FunctionCall {}) = []
+
+getUnrollVarName :: Env -> Expression -> Result String String
+getUnrollVarName e cond = case getUsedVariables [] cond of
+    [n] -> case fromEnv e n of
+        Ok (EVariable _ t _) | isMutable t -> Ok n
+        _ -> Err $ show n ++ " cannot be used as unrolling variable"
+    _ -> Err "cannot unroll loop"
+
+unrollLoop :: Env -> Expression -> Body -> Result String Body
+unrollLoop e cond b = do
+    n <- getUnrollVarName e cond
+    nb <- countUnrolling e n cond b 0
+    if nb == 0 then Err "cannot unroll loop" else Ok (replicateLoop nb b)
+
 -- Expression
 
 optimizeExpr :: Env -> Expression -> Result String (Expression, Bool)
 optimizeExpr e ex@(Variable n) = case fromEnv e n of
-    Ok (EVariable _ _ v) -> Ok (v, True)
+    Ok (EVariable _ t v) | (not . isMutable) t -> Ok (v, True)
     _ -> Ok (ex, False)
 optimizeExpr _ ex@(ELiteral _) = Ok (ex, False)
 optimizeExpr e (BinaryOp op l r) = case mapBoth (optimizeExpr e) (l, r) of
@@ -116,25 +185,26 @@ nothingIfEmpty [] = Nothing
 nothingIfEmpty x = Just x
 
 optimizeStatement :: Env -> Statement -> Result String (Env, [Statement], Bool)
-optimizeStatement e s@(VariableDeclaration n t v) = if isMutable t
-    then case v of
-        Nothing -> Ok (e, [s], False)
-        Just ex -> do
-            (ex', oex) <- optimizeExpr e ex
-            return (e, [VariableDeclaration n t (Just ex')], oex)
-    else do
-        e' <- pushVariable e s
-        return (e', [], True)
+optimizeStatement e (VariableDeclaration n t v) = do
+        ex <- defaultExpr e t
+        (ex', oex) <- optimizeExpr e (fromMaybe ex v)
+        let e' = unwrapOr e (pushVariable e (VariableDeclaration n t (Just ex')))
+        if isMutable t
+            then return (e', [VariableDeclaration n t v], oex)
+            else return (e', [], oex)
 optimizeStatement e (FunctionDeclaration n p rt b) = do
     (_, b', ob) <- optimizeBodyMax (pushScope e []) False b
     let (e', oe) = addInlinableFunc e (func b')
     return (e', [func b'], ob || oe)
         where
             func = FunctionDeclaration n p rt
-
-optimizeStatement e (WhileLoop cond b) = do
-    (cond', ocond) <- optimizeExpr e cond
-    return (e, [WhileLoop cond' b], ocond)
+optimizeStatement e (WhileLoop cond b) = if not (toBool cond)
+    then Ok (e, [], True)
+    else case unrollLoop e cond b of
+        Ok b' -> Ok (e, b', True)
+        _ -> do
+            (cond', ocond) <- optimizeExpr e cond
+            return (e, [WhileLoop cond' b], ocond)
 optimizeStatement e (If cond b eb) = do
     (cond', ocond) <- optimizeExpr e cond
     (benv, b', ob) <- optimizeBodyMax e False b

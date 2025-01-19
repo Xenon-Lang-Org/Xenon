@@ -6,6 +6,7 @@ import Interpreter.System.Types
 import Interpreter.System.Evaluator
 import Utils.Data.Result
 import Parser.Data.Ast
+import Interpreter.System.Optimizer (optimizeProg)
 
 main :: IO ()
 main = hspec spec
@@ -27,7 +28,7 @@ spec = do
 
         it "should show an EnvVar" $ do
             show (eVar "foo") `shouldBe`  "[ var  ] foo: Mutable I32 = 0"
-            show (eFunc "foo") `shouldBe` "[ func ] foo (a: Mutable I32, b: Mutable I32) -> Mutable I32"
+            show (eFunc "foo") `shouldBe` "[ func ] foo (a: Immutable I32, b: Immutable I32) -> Immutable I32"
             show (eType "foo") `shouldBe` "[ type ] foo -> Immutable Enum { RED, GREEN, BLUE }"
 
         -- it "should add a scope to an Env" $ do
@@ -52,14 +53,14 @@ spec = do
             fromEnv envWithStuff "baz" `shouldBe` Ok (eVar "baz")
 
         it "should add an EnvVar to the Env" $ do
-            pushVariable env (VariableDeclaration "foo" iI32 (Just $ iLit 0)) 
+            pushVariable env (VariableDeclaration "foo" iI32M (Just $ iLit 0))
                 `shouldBe` Ok (envWithVar "foo")
-            pushVariable env (VariableDeclaration "foo" iI32 Nothing) 
+            pushVariable env (VariableDeclaration "foo" iI32 Nothing)
                 `shouldBe` Err "Variable foo must have a value to be added to env"
-            pushVariable (envWithVar "foo") (VariableDeclaration "foo" iI32 (Just $ iLit 0)) 
+            pushVariable (envWithVar "foo") (VariableDeclaration "foo" iI32 (Just $ iLit 0))
                 `shouldBe` Err "foo redefined"
-            pushVariable (envWithVar "foo") (FunctionDeclaration "bar" eFuncArgs iI32 eFuncBody) 
-                `shouldBe` Err "Bad variable type (FunctionDeclaration \"bar\" [(\"a\",Mutable I32),(\"b\",Mutable I32)] Mutable I32 [ReturnStatement \"a\" Add \"b\"])"
+            pushVariable (envWithVar "foo") (FunctionDeclaration "bar" eFuncArgs iI32 eFuncBody)
+                `shouldBe` Err "Bad variable type (FunctionDeclaration \"bar\" [(\"a\",Immutable I32),(\"b\",Immutable I32)] Immutable I32 [ReturnStatement \"a\" Add \"b\"])"
             pushFunction env (FunctionDeclaration "bar" eFuncArgs iI32 eFuncBody)
                 `shouldBe` Ok (envWithFunc "bar")
             pushFunction (envWithFunc "bar") (FunctionDeclaration "bar" eFuncArgs iI32 eFuncBody)
@@ -71,7 +72,7 @@ spec = do
 
         it "should change the value of a variable" $ do
             assignVar (envWithVar "foo") "foo" (iLit 12) `shouldSatisfy` varHasValue "foo" (iLit 12)
-            assignVar (envWithVar "foo") "bar" (iLit 12) `shouldBe` Err "bar is undefined" 
+            assignVar (envWithVar "foo") "bar" (iLit 12) `shouldBe` Err "bar is undefined"
 
         -- Types
 
@@ -171,9 +172,9 @@ spec = do
         it "should evaluate the parenthesis expression" $ do
             evalExpr (envWith [eVarI "baz" 13]) (Parenthesis (Variable "baz"))
                 `shouldSatisfy` evalExprIs (iLit 13)
-        
+
         it "should evaluate the function call expression" $ do
-            evalExpr (envWithFunc "foo") (FunctionCall "foo" [iLit 3, iLit 4]) 
+            evalExpr (envWithFunc "foo") (FunctionCall "foo" [iLit 3, iLit 4])
                 `shouldSatisfy` evalExprIs (iLit 7)
             evalExpr (envWith [eDefFunc "add", eVarI "foo" 42]) (FunctionCall "add" [iLit 84])
                 `shouldSatisfy` evalExprIs (iLit 84)
@@ -183,10 +184,10 @@ spec = do
         -- Statements
 
         it "should evaluate the variable declaration statement" $ do
-            evalStatement env (VariableDeclaration "foo" iI32 (Just $ iLit 42)) 
-                `shouldBe` Ok (envWith [(eVarI "foo" 42)], Nothing)
-            evalStatement env (VariableDeclaration "foo" iI32 Nothing)
-                `shouldBe` Ok (envWith [(eVarI "foo" 0)], Nothing)
+            evalStatement env (VariableDeclaration "foo" iI32M (Just $ iLit 42))
+                `shouldBe` Ok (envWith [eVarI "foo" 42], Nothing)
+            evalStatement env (VariableDeclaration "foo" iI32M Nothing)
+                `shouldBe` Ok (envWith [eVarI "foo" 0], Nothing)
             evalStatement (envWithVar "foo") (VariableDeclaration "foo" iI32 (Just $ iLit 42))
                 `shouldSatisfy` isErr
 
@@ -211,19 +212,19 @@ spec = do
                 `shouldBe` Ok (envWithType "foo", Nothing)
             evalStatement (envWithType "foo") (TypeDeclaration "foo" tEnum)
                 `shouldSatisfy` isErr
-        
+
         it "should evaluate the return statement" $ do
             evalStatement env (ReturnStatement $ iLit 42)
                 `shouldSatisfy` mEvalExprIs (Just $ iLit 42)
             evalStatement env (ReturnStatement $ Variable "foo")
                 `shouldSatisfy` isErr
-        
+
         it "should evaluate the standalone function call" $ do
             evalStatement (envWithFunc "foo") (StandaloneFunctionCall "foo" [iLit 3, iLit 4])
                 `shouldBe` Ok (envWithFunc "foo", Nothing)
             evalStatement (envWithFunc "foo") (StandaloneFunctionCall "bar" [iLit 3, iLit 4])
                 `shouldSatisfy` isErr
-        
+
         it "should evaluate the variable reassignment statement" $ do
             evalStatement (envWithVar "foo") (VariableReAssignment "foo" (iLit 42))
                 `shouldBe` Ok (envWith [eVarI "foo" 42], Nothing)
@@ -231,8 +232,152 @@ spec = do
         -- Program
 
         it "should evaluate the program" $ do
-            evalProg prog 
+            evalProg prog
                 `shouldBe` Ok (envWith [eVarI "baz" 66, eVarI "bar" 12, eVarI "foo" 12] , iLit 0)
+
+        -- Optimizer
+
+        it "should fold constant variables" $ do
+            Program [ VariableDeclaration "foo" (PrimitiveType Immutable I32) (Just $ iLit 42)
+                    , ReturnStatement (Variable "foo") ]
+                `shouldSatisfy`
+                    optimizeChange [ ReturnStatement (iLit 42) ]
+
+            Program [ VariableDeclaration "foo" (PrimitiveType Immutable I32) (Just $ iLit 42)
+                    , VariableDeclaration "bar" (PrimitiveType Mutable I32) (Just $ iLit 8)
+                    , ReturnStatement (BinaryOp Add (Variable "foo") (Variable "bar")) ]
+                `shouldSatisfy`
+                    optimizeChange [ VariableDeclaration "bar" (PrimitiveType Mutable I32) (Just $ iLit 8)
+                                   , ReturnStatement (BinaryOp Add (iLit 42) (Variable "bar")) ]
+
+            Program [ VariableDeclaration "foo" (PrimitiveType Mutable I32) (Just $ iLit 42)
+                    , ReturnStatement (Variable "foo") ]
+                `shouldSatisfy`
+                    optimizeNoChange
+
+        it "should pre-evaluate a constant binary operation" $ do
+            Program [ ReturnStatement (BinaryOp Add (iLit 44) (iLit 16)) ]
+                `shouldSatisfy`
+                    optimizeChange [ ReturnStatement (iLit 60) ]
+
+            Program [ VariableDeclaration "foo" (PrimitiveType Immutable I32) (Just $ iLit 10)
+                    , ReturnStatement (BinaryOp Add (Variable "foo") (iLit 5))]
+                `shouldSatisfy`
+                    optimizeChange [ReturnStatement (iLit 15)]
+
+            Program [ VariableDeclaration "foo" (PrimitiveType Mutable I32) (Just $ iLit 42)
+                    , VariableDeclaration "bar" (PrimitiveType Mutable I32) (Just $ iLit 8)
+                    , ReturnStatement (BinaryOp Add (Variable "foo") (Variable "bar")) ]
+                `shouldSatisfy`
+                    optimizeNoChange
+            
+        it "should unpack a constant IF statement" $ do
+            Program [ If (iLit 1) [ReturnStatement (iLit 42)] (Just [ReturnStatement (iLit 84)]) ]
+                `shouldSatisfy`
+                    optimizeChange [ReturnStatement (iLit 42)]
+
+            Program [ If (iLit 0) [ReturnStatement (iLit 42)] (Just [ReturnStatement (iLit 84)]) ]
+                `shouldSatisfy`
+                    optimizeChange [ReturnStatement (iLit 84)]
+            
+            Program [ If (iLit 0) [ReturnStatement (iLit 42)] (Just [
+                        If (iLit 1) [ReturnStatement (iLit 1)] (Just [ReturnStatement (iLit 84)])]) 
+                    ]
+                `shouldSatisfy`
+                    optimizeChange [ReturnStatement (iLit 1)]
+            
+            Program [ If (Variable "foo") [ReturnStatement (iLit 42)] (Just [ReturnStatement (iLit 84)]) ]
+                `shouldSatisfy`
+                    optimizeChange [ If (Variable "foo") [ReturnStatement (iLit 42)] Nothing
+                                   , ReturnStatement (iLit 84) ]
+
+            Program [ If (Variable "foo") [StandaloneFunctionCall "bar" []] (Just [StandaloneFunctionCall "baz" []]) ]
+                `shouldSatisfy`
+                    optimizeNoChange
+
+        it "should remove unreachable code after a return" $ do
+            Program [ ReturnStatement (BinaryOp Add (Variable "foo") (Variable "bar")) ]
+                `shouldSatisfy`
+                    optimizeNoChange
+            
+            Program [ VariableDeclaration "foo" (PrimitiveType Mutable I32) (Just $ iLit 42)
+                    , VariableDeclaration "bar" (PrimitiveType Mutable I32) (Just $ iLit 8)
+                    , ReturnStatement (BinaryOp Add (Variable "foo") (Variable "bar"))
+                    , VariableDeclaration "baz" (PrimitiveType Mutable I32) (Just $ iLit 14)
+                    , ReturnStatement (Variable "baz") ]
+                `shouldSatisfy`
+                    optimizeChange [ VariableDeclaration "foo" (PrimitiveType Mutable I32) (Just $ iLit 42)
+                                   , VariableDeclaration "bar" (PrimitiveType Mutable I32) (Just $ iLit 8)
+                                   , ReturnStatement (BinaryOp Add (Variable "foo") (Variable "bar")) ]
+
+        it "should substitue a bitwise not with a bitwise xor" $ do
+            Program [ ReturnStatement (UnaryOp BitNot (Variable "foo")) ]
+                `shouldSatisfy`
+                    optimizeChange [ ReturnStatement (BinaryOp BitXor (iLit (-1)) (Variable "foo")) ]
+
+        it "should inline a function content" $ do
+            Program [ FunctionDeclaration "foo" eFuncArgs iI32 eFuncBody 
+                    , ReturnStatement (FunctionCall "foo" [iLit 13, iLit 32]) ]
+                `shouldSatisfy`
+                    optimizeChange [ FunctionDeclaration "foo" eFuncArgs iI32 eFuncBody 
+                                   , ReturnStatement (iLit 45) ]
+
+            Program [ FunctionDeclaration "foo" eFuncArgs iI32 eFuncBody 
+                    , ReturnStatement (FunctionCall "foo" [Variable "bar", iLit 32]) ]
+                `shouldSatisfy`
+                    optimizeChange [ FunctionDeclaration "foo" eFuncArgs iI32 eFuncBody 
+                                   , ReturnStatement (BinaryOp Add (Variable "bar") (iLit 32)) ]
+
+            Program [ FunctionDeclaration "foo" eFuncArgsM iI32 eFuncBody 
+                    , ReturnStatement (FunctionCall "foo" [Variable "bar", iLit 32]) ]
+                `shouldSatisfy`
+                    optimizeNoChange
+        
+        it "should unroll a while loop" $ do
+            Program [ VariableDeclaration "i" (PrimitiveType Mutable I32) (Just $ iLit 0)
+                    , VariableDeclaration "x" (PrimitiveType Mutable I32) (Just $ iLit 1)
+                    , WhileLoop (BinaryOp Lt (Variable "i") (iLit 3))
+                        [ VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (iLit 1)) ]
+                    , ReturnStatement (Variable "x") ]
+                `shouldSatisfy` 
+                    optimizeChange
+                        [ VariableDeclaration "i" (PrimitiveType Mutable I32) (Just $ iLit 0)
+                        , VariableDeclaration "x" (PrimitiveType Mutable I32) (Just $ iLit 1)
+                        , VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (iLit 1))
+                        , VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (iLit 1))
+                        , VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (iLit 1))
+                        , ReturnStatement (Variable "x") ]
+
+            Program [ VariableDeclaration "i" (PrimitiveType Mutable I32) (Just $ iLit 0)
+                    , VariableDeclaration "x" (PrimitiveType Mutable I32) (Just $ iLit 1)
+                    , WhileLoop (BinaryOp Lt (Variable "i") (Variable "foo"))
+                        [ VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (iLit 1)) ]
+                    , ReturnStatement (Variable "x") ]
+                `shouldSatisfy` 
+                    optimizeNoChange
+
+            Program [ VariableDeclaration "i" (PrimitiveType Mutable I32) (Just $ iLit 0)
+                    , VariableDeclaration "x" (PrimitiveType Mutable I32) (Just $ iLit 1)
+                    , WhileLoop (BinaryOp Lt (Variable "i") (iLit 30))
+                        [ VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (iLit 1)) ]
+                    , ReturnStatement (Variable "x") ]
+                `shouldSatisfy`
+                    optimizeNoChange
+
+            Program [ VariableDeclaration "i" (PrimitiveType Mutable I32) (Just $ iLit 0)
+                    , VariableDeclaration "x" (PrimitiveType Mutable I32) (Just $ iLit 1)
+                    , WhileLoop (BinaryOp Lt (Variable "i") (iLit 3))
+                        [ VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (FunctionCall "func" [Variable "i"])) ]
+                    , ReturnStatement (Variable "x") ]
+                `shouldSatisfy`
+                    optimizeNoChange
 
 -- Helpers
 
@@ -249,7 +394,10 @@ iI16 :: Type
 iI16 = PrimitiveType Immutable I16
 
 iI32 :: Type
-iI32 = PrimitiveType Mutable I32
+iI32 = PrimitiveType Immutable I32
+
+iI32M :: Type
+iI32M = PrimitiveType Mutable I32
 
 iI64 :: Type
 iI64 = PrimitiveType Mutable I64
@@ -273,10 +421,10 @@ iU64 :: Type
 iU64 = PrimitiveType Immutable U64
 
 eVar :: String -> EnvVar
-eVar n = EVariable n iI32 (ELiteral $ IntLiteral 0)
+eVar n = EVariable n iI32M (ELiteral $ IntLiteral 0)
 
 eVarI :: String -> Integer -> EnvVar
-eVarI n i = EVariable n iI32 (iLit i)
+eVarI n i = EVariable n iI32M (iLit i)
 
 eVarF :: String -> Double -> EnvVar
 eVarF n f = EVariable n fF32 (fLit f)
@@ -290,11 +438,14 @@ eFuncBody = [ReturnStatement $ BinaryOp Add (Variable "a") (Variable "b")]
 eFuncArgs :: [Field]
 eFuncArgs = [("a", iI32), ("b", iI32)]
 
+eFuncArgsM :: [Field]
+eFuncArgsM = [("a", iI32M), ("b", iI32M)]
+
 eBody2 :: Body
 eBody2 = [VariableReAssignment "foo" (iLit (-1))]
 
 eBody :: Body
-eBody = [ VariableReAssignment "foo" (BinaryOp Add (Variable "foo") (iLit 1)) 
+eBody = [ VariableReAssignment "foo" (BinaryOp Add (Variable "foo") (iLit 1))
              , VariableReAssignment "baz" (BinaryOp Add (Variable "baz") (iLit 2)) ]
 
 eCond :: Expression
@@ -352,8 +503,18 @@ mEvalExprIs _ (Err _) = False
 mEvalExprIs v (Ok (_, v')) = v == v'
 
 prog :: Program
-prog = Program [ VariableDeclaration "foo" iI32 Nothing
-               , VariableDeclaration "bar" iI32 Nothing
-               , VariableDeclaration "baz" iI32 (Just $ iLit 42)
+prog = Program [ VariableDeclaration "foo" iI32M Nothing
+               , VariableDeclaration "bar" iI32M Nothing
+               , VariableDeclaration "baz" iI32M (Just $ iLit 42)
                , VariableReAssignment "bar" (iLit 12)
                , eWhile ]
+
+optimizeChange :: Body -> Program -> Bool
+optimizeChange expected p = case optimizeProg p of
+    Ok (Program b) -> b == expected
+    _ -> False
+
+optimizeNoChange :: Program -> Bool
+optimizeNoChange p = case optimizeProg p of
+    Ok p' -> p == p'
+    _ -> False
