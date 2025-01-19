@@ -26,7 +26,7 @@ jobs:
       - name: Package Binary
         run: |
           mkdir -p release/
-          cp $(stack path --local-install-root)/bin/lisp-exe release/glados
+          cp $(stack path --local-install-root)/bin/* release/glados
           tar czf glados-${{ github.ref_name }}.tar.gz release/
 
       - name: Create Release
