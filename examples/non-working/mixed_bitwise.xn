@@ -1,0 +1,11 @@
+fn test_mixed_bitwise() -> i32
+{
+    let a: i32 = 1;
+    let b: f32 = 2.5;
+    
+    let and_result: i32 = a & b;
+    let or_result: i32 = a | b;
+    let xor_result: i32 = a ^ b;
+    
+    return 0;
+}

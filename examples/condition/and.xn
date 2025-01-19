@@ -3,9 +3,7 @@ fn ifand(a: i32, b: i32) -> i32
     if (a > 10 && b > 10)
     {
         return 1;
-    }
-    else
-    {
+    } elif a <= 10 || b <= 10 {
         return 0;
     }
     return 2;

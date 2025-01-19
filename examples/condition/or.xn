@@ -4,11 +4,11 @@ fn ifor(a: i32, b: i32) -> i32
     {
         return 1;
     }
-    else
+    elif a == 10 && b == 10
     {
-        return 0;
+        return 2;
     }
-    return 2;
+    return 0;
 }
 
 // TEST "ifor" IN "12 5" OUT "1"
