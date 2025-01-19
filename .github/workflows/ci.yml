@@ -39,8 +39,11 @@ jobs:
       - name: Build
         run: stack build
 
-      - name: Run tests
+      - name: Run unit tests
         run: stack test
+      
+      - name: Run functionnal tests
+        run: ./functionnal_tests.sh
 
   docker:
     needs: build-and-test
