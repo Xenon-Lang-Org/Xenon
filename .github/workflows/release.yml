@@ -29,7 +29,6 @@ jobs:
           cp $(stack path --local-install-root)/xrun release/
           cp $(stack path --local-install-root)/xin release/
           cp $(stack path --local-install-root)/xcc release/
-          cp $(stack path --local-install-root)/xtest release/
           tar czf xenon-${{ github.ref_name }}.tar.gz release/
 
       - name: Create Release
