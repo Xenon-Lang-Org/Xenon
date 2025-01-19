@@ -50,14 +50,11 @@ parseInstruction op = case op of
   0x73 -> pure I32Xor
   0x85 -> pure I64Xor
 
-  0x74 -> pure I32Not
-  0x86 -> pure I64Not
+  0x74 -> pure I32Shl
+  0x86 -> pure I64Shl
 
-  0x75 -> pure I32Shl
-  0x87 -> pure I64Shl
-
-  0x76 -> pure I32Shr
-  0x88 -> pure I64Shr
+  0x75 -> pure I32Shr
+  0x87 -> pure I64Shr
 
   0x4A -> pure I32GtS
   0x55 -> pure I64GtS

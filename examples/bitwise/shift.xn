@@ -15,8 +15,8 @@ fn shr_i32(a: i32, b: i32) -> i32
 }
 
 // TEST "shr_i32" IN "40 3" OUT "5"
-// TEST "shr_i32" IN "-2147483648 31" OUT "1"
-// TEST "shr_i32" IN "1 32" OUT "0"
+// TEST "shr_i32" IN "-2147483648 31" OUT "-1"
+// TEST "shr_i32" IN "1 32" OUT "1"
 
 fn shl_i64(a: i64, b: i64) -> i64
 {
@@ -35,5 +35,5 @@ fn shr_i64(a: i64, b: i64) -> i64
 }
 
 // TEST "shr_i64" IN "40 3" OUT "5"
-// TEST "shr_i64" IN "-9223372036854775808 63" OUT "1"
-// TEST "shr_i64" IN "1 64" OUT "0"
+// TEST "shr_i64" IN "-9223372036854775808 63" OUT "-1"
+// TEST "shr_i64" IN "1 64" OUT "1"

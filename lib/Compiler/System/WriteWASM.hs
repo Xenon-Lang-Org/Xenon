@@ -88,14 +88,14 @@ encodeInstruction instr = case instr of
     ModuleF64 -> error "f64.not not supported"
 
   ModuleShl vt -> case vt of
-    ModuleI32 -> [0x75]  -- i32.shl
-    ModuleI64 -> [0x87]  -- i64.shl
+    ModuleI32 -> [0x74]  -- i32.shl
+    ModuleI64 -> [0x86]  -- i64.shl
     ModuleF32 -> error "f32.shl not supported"
     ModuleF64 -> error "f64.shl not supported"
   
   ModuleShr vt -> case vt of
-    ModuleI32 -> [0x76]  -- i32.shr_s
-    ModuleI64 -> [0x88]  -- i64.shr_s
+    ModuleI32 -> [0x75]  -- i32.shr_s
+    ModuleI64 -> [0x87]  -- i64.shr_s
     ModuleF32 -> error "f32.shr not supported"
     ModuleF64 -> error "f64.shr not supported"
 

@@ -83,11 +83,11 @@ executeInstruction instr vm =
     I32Not -> i32Unary vm complement
     I64Not -> i64Unary vm complement
 
-    I32Shl -> i32BinOp vm (\x y -> x `shiftL` fromIntegral y)
-    I64Shl -> i64BinOp vm (\x y -> x `shiftL` fromIntegral y)
-
-    I32Shr -> i32BinOp vm (\x y -> x `shiftR` fromIntegral y)
-    I64Shr -> i64BinOp vm (\x y -> x `shiftR` fromIntegral y)
+    I32Shl -> i32BinOp vm (\x y -> x `shiftL` fromIntegral (y .&. 31))
+    I64Shl -> i64BinOp vm (\x y -> x `shiftL` fromIntegral (y .&. 63))
+    
+    I32Shr -> i32BinOp vm (\x y -> x `shiftR` fromIntegral (y .&. 31))
+    I64Shr -> i64BinOp vm (\x y -> x `shiftR` fromIntegral (y .&. 63))
 
     I32GtS -> i32BinOp vm (\x y -> if x > y then 1 else 0)
     I64GtS -> i64BinBoolOp vm (\x y -> if x > y then 1 else 0)
