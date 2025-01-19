@@ -15,6 +15,8 @@ import Interpreter.System.Operation
 import Interpreter.System.Types
 import Data.Maybe
 
+-- Expression
+
 optimizeExpr :: Env -> Expression -> Result String (Expression, Bool)
 optimizeExpr e ex@(Variable n) = case fromEnv e n of
     Ok (EVariable _ _ v) -> Ok (v, True)
@@ -39,6 +41,20 @@ optimizeExpr e (Parenthesis ex) = case optimizeExpr e ex of
     Ok (ex', oex) -> if oex then Ok (ex', True) else Ok (ex, False)
 optimizeExpr _ ex = Ok (ex, False)
 
+-- Statement
+
+allBranchesReturn :: Body -> Bool
+allBranchesReturn [] = False
+allBranchesReturn (ReturnStatement {}:_) = True
+allBranchesReturn (If _ b Nothing:xs) = all allBranchesReturn [b, xs]
+allBranchesReturn (If _ b (Just eb):xs) = all allBranchesReturn [b, eb, xs]
+allBranchesReturn (WhileLoop _ b:xs) = all allBranchesReturn [b, xs]
+allBranchesReturn (_:xs) = allBranchesReturn xs
+
+nothingIfEmpty :: [a] -> Maybe [a]
+nothingIfEmpty [] = Nothing
+nothingIfEmpty x = Just x
+
 optimizeStatement :: Env -> Statement -> Result String (Env, [Statement], Bool)
 optimizeStatement e s@(VariableDeclaration n t v) = if isMutable t
     then case v of
@@ -57,11 +73,15 @@ optimizeStatement e (WhileLoop cond b) = do
     return (e, [WhileLoop cond' b], ocond)
 optimizeStatement e (If cond b eb) = do
     (cond', ocond) <- optimizeExpr e cond
+    (benv, b', ob) <- optimizeBody e b
+    (ebenv, eb', oeb) <- optimizeBody e (fromMaybe [] eb)
     if isStatic cond'
         then if toBool cond'
-            then Ok (e, b, True)
-            else Ok (e, fromMaybe [] eb, True)
-        else Ok (e, [If cond' b eb], ocond)
+            then Ok (benv, b', True)
+            else Ok (ebenv, eb', True)
+        else if allBranchesReturn b'
+            then Ok (e, If cond' b' Nothing : eb', ob || oeb)
+            else Ok (e, [If cond' b' (nothingIfEmpty eb')], ocond || ob || oeb)
 optimizeStatement e s@(TypeDeclaration {}) = Ok (e, [s], False)
 optimizeStatement e (ReturnStatement ex) = do
     (ex', oex) <- optimizeExpr e ex
@@ -72,6 +92,8 @@ optimizeStatement e (StandaloneFunctionCall n a) = do
 optimizeStatement e (VariableReAssignment n ex) = do
     (ex', oex) <- optimizeExpr e ex
     return (e, [VariableReAssignment n ex'], oex)
+
+-- Body
 
 optimizeBody :: Env -> Body -> Result String (Env, Body, Bool)
 optimizeBody e [] = Ok (e, [], False)
@@ -84,6 +106,8 @@ optimizeBodyMax :: Env -> Bool -> Body -> Result String (Body, Bool)
 optimizeBodyMax e o b = do
     (e', b', ob) <- optimizeBody e b
     if ob then optimizeBodyMax e' True b' else Ok (b', o)
+
+-- Program
 
 optimizeProg :: Program -> Result String Program
 optimizeProg (Program b) = do
