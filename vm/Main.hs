@@ -11,6 +11,10 @@ main :: IO ()
 main = do
   args <- getArgs
   case args of
+    ["-h"] ->
+      putStrLn "Usage: xrun <file.wasm> [--invoke function_name] [arg1 arg2 ...]"
+    ["--help"] ->
+      putStrLn "Usage: xrun <file.wasm> [--invoke function_name] [arg1 arg2 ...]"
     (fileName : "--invoke" : funcName : rawArgs) -> do
       bytes <- BS.readFile fileName
       mainParser bytes funcName rawArgs

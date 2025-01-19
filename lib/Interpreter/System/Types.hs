@@ -2,7 +2,11 @@ module Interpreter.System.Types
     (
         castExpr,
         toBool,
-        defaultExpr
+        defaultExpr,
+        isMutable,
+        isPrimitive,
+        isFloat,
+        typeSize
     )
 where
 
@@ -59,3 +63,21 @@ deduceType _ t = Ok t
 
 defaultExpr :: Env -> Type -> Result String Expression
 defaultExpr e = castExpr e (ELiteral $ IntLiteral 0)
+
+isMutable :: Type -> Bool
+isMutable (PrimitiveType Mutable _) = True
+isMutable (PointerType Mutable _) = True
+isMutable (StructType Mutable _) = True
+isMutable (ArrayType Mutable _) = True
+isMutable (EnumType Mutable _) = True
+isMutable (CustomType Mutable _) = True
+isMutable _ = False
+
+isPrimitive :: Type -> Bool
+isPrimitive (PrimitiveType {}) = True
+isPrimitive _ = False
+
+typeSize :: Type -> Int
+typeSize (PrimitiveType _ I64) = 64;
+typeSize (PrimitiveType _ F64) = 64;
+typeSize _ = 32;

@@ -1,7 +1,8 @@
 module Interpreter.System.Operation
     (
         evalBinOp,
-        evalUnaryOp
+        evalUnaryOp,
+        evalSizedBinOp
     )
 where
 
@@ -12,7 +13,7 @@ import Control.Applicative
 
 class (Num a, Ord a) => Numeric a
 class (Numeric a, Integral a, Bits a) => NumBits a
-class (Numeric a, Fractional a) => NumFloat a
+class (RealFrac a, Numeric a, Fractional a) => NumFloat a
 
 instance Numeric Double
 instance NumFloat Double
@@ -30,13 +31,20 @@ toBool 0 = False
 toBool _ = True
 
 toNumFloat :: NumFloat a => Expression -> Result String a
-toNumFloat (ELiteral (FloatLiteral n)) = Ok $ realToFrac n 
+toNumFloat (ELiteral (FloatLiteral n)) = Ok $ realToFrac n
 toNumFloat (ELiteral (IntLiteral n)) = Ok $ fromIntegral n
 toNumFloat _ = Err "Invalid binary operator argument"
 
 toNumBits :: NumBits a => Expression -> Result String a
 toNumBits (ELiteral (IntLiteral n)) = Ok $ fromIntegral n
 toNumBits n = Err ("Invalid binary operator argument " ++ show n)
+
+roundNumFloat :: NumFloat a => a -> a
+roundNumFloat n = integral (round (n * factor)) / factor
+    where
+        factor = 1000000000000
+        integral :: NumFloat a => Integer -> a
+        integral = fromIntegral
 
 -- Binary Operations
 
@@ -66,31 +74,38 @@ evalBinFloat op l r = case op of
     Div -> l / r
     _ -> evalBin op l r
 
-evalBinBits :: NumBits a => BinOp -> a -> a -> a
-evalBinBits op l r = case op of
+evalBinBits :: NumBits a => Int -> BinOp -> a -> a -> a
+evalBinBits s op l r = case op of
     Div -> l `div` r
-    Mod -> l `mod` r
+    Mod -> l `rem` r
     BitAnd -> (.&.) l r
     BitOr -> (.|.) l r
     BitXor -> (.^.) l r
-    Shl -> l `shiftL` fromIntegral r
-    Shr -> l `shiftR` fromIntegral r
+    Shl -> if s == 0 
+        then l `shiftL` fromIntegral r
+        else l `shiftL` fromIntegral (r .&. fromIntegral (s - 1))
+    Shr -> if s == 0 
+        then l `shiftR` fromIntegral r
+        else l `shiftR` fromIntegral (r .&. fromIntegral (s - 1))
     _ -> evalBin op l r
 
 floatBinEval :: BinOp -> Expression -> Expression -> Result String Expression
-floatBinEval Div _ (ELiteral (IntLiteral 0)) = Err "Division by zero" 
-floatBinEval Div _ (ELiteral (FloatLiteral 0)) = Err "Division by zero" 
+floatBinEval Div _ (ELiteral (IntLiteral 0)) = Err "Division by zero"
+floatBinEval Div _ (ELiteral (FloatLiteral 0)) = Err "Division by zero"
 floatBinEval op l r = case mapBoth toNumFloat (l, r) of
-    Ok (l', r') -> Ok $ ELiteral $ FloatLiteral $ evalBinFloat op l' r'
+    Ok (l', r') -> Ok $ ELiteral $ FloatLiteral $ roundNumFloat $ evalBinFloat op l' r'
     Err msg -> Err msg
 
-bitsBinEval :: BinOp -> Expression -> Expression -> Result String Expression
-bitsBinEval op l r = case mapBoth toNumBits (l, r) of
-    Ok (l', r') -> Ok $ ELiteral $ IntLiteral $ evalBinBits op l' r'
+bitsBinEval :: Int -> BinOp -> Expression -> Expression -> Result String Expression
+bitsBinEval s op l r = case mapBoth toNumBits (l, r) of
+    Ok (l', r') -> Ok $ ELiteral $ IntLiteral $ evalBinBits s op l' r'
     Err msg -> Err msg
 
 evalBinOp :: BinOp -> Expression -> Expression -> Result String Expression
-evalBinOp op l r = bitsBinEval op l r <|> floatBinEval op l r
+evalBinOp op l r = bitsBinEval 0 op l r <|> floatBinEval op l r
+
+evalSizedBinOp :: Int -> BinOp -> Expression -> Expression -> Result String Expression
+evalSizedBinOp s op l r = bitsBinEval s op l r <|> floatBinEval op l r
 
 -- Unary Operations
 
@@ -113,7 +128,7 @@ bitsUnaryEval op ex = case toNumBits ex of
 
 floatUnaryEval :: UnaryOp -> Expression -> Result String Expression
 floatUnaryEval op ex = case toNumFloat ex of
-    Ok ex' -> Ok $ ELiteral $ FloatLiteral $ evalUnaryFloat op ex'
+    Ok ex' -> Ok $ ELiteral $ FloatLiteral $ roundNumFloat $ evalUnaryFloat op ex'
     Err m -> Err m
 
 evalUnaryOp :: UnaryOp -> Expression -> Result String Expression

@@ -1,0 +1,32 @@
+// Greatest Common Divisor
+fn gcd_32(a: mut i32, b: mut i32) -> i32
+{
+    let t: mut i32 = 0;
+    
+    while (b != 0) {
+        t = b;
+        b = a % b;
+        a = t;
+    }
+    return a;
+}
+
+// TEST "gcd_32" IN "12 15" OUT "3"
+// TEST "gcd_32" IN "48 18" OUT "6"
+// TEST "gcd_32" IN "48 180" OUT "12"
+
+fn gcd_64(a: mut i64, b: mut i64) -> i64
+{
+    let t: mut i64 = 0;
+    
+    while (b != 0) {
+        t = b;
+        b = a % b;
+        a = t;
+    }
+    return a;
+}
+
+// TEST "gcd_64" IN "12 15" OUT "3"
+// TEST "gcd_64" IN "48 18" OUT "6"
+// TEST "gcd_64" IN "48 180" OUT "12"

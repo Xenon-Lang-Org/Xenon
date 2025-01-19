@@ -1,0 +1,11 @@
+fn doif(a: i32) -> i32 {
+    if a > 10 {
+        return 1;
+    } elif a == 10 {
+        return 2;
+    }
+    return 0;
+}
+
+// TEST "doif" IN "12" OUT "1"
+// TEST "doif" IN "5" OUT "0"

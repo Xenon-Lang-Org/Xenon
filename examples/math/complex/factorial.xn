@@ -1,0 +1,27 @@
+fn fact_32(n: i32) -> i32
+{
+    if (n == 0) {
+        return 1;
+    }
+    return n * fact_32(n - 1);
+}
+
+// TEST "fact_32" IN "5" OUT "120"
+// TEST "fact_32" IN "0" OUT "1"
+// TEST "fact_32" IN "1" OUT "1"
+// TEST "fact_32" IN "2" OUT "2"
+// TEST "fact_32" IN "3" OUT "6"
+
+fn fact_64(n: i64) -> i64
+{
+    if (n == 0) {
+        return 1;
+    }
+    return n * fact_64(n - 1);
+}
+
+// TEST "fact_64" IN "5" OUT "120"
+// TEST "fact_64" IN "0" OUT "1"
+// TEST "fact_64" IN "1" OUT "1"
+// TEST "fact_64" IN "2" OUT "2"
+// TEST "fact_64" IN "3" OUT "6"

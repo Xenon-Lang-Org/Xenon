@@ -1,0 +1,19 @@
+fn ifif(a: i32) -> i32
+{
+    if (a > 10)
+    {
+        if (a > 5)
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    else
+    {
+        return 0;
+    }
+    return 2;
+}

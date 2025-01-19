@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+set -e
+
+# Ensure a file argument is provided
+if [ "$#" -ne 1 ]; then
+  echo -e "\e[31mUsage: $0 <file>\e[0m"
+  exit 1
+fi
+
+file="$1"
+
+# Verify the file exists
+if [ ! -f "$file" ]; then
+  echo -e "\e[31mError: File '$file' not found.\e[0m"
+  exit 1
+fi
+
+# Initialize an array for test cases
+test_cases=()
+
+# Parse the file for test cases
+while IFS= read -r line; do
+  if [[ $line =~ ^//\ TEST\ \"([^\"]+)\"\ IN\ \"([^\"]*)\"\ OUT\ \"([^\"]+)\"$ ]]; then
+    function="${BASH_REMATCH[1]}"
+    args="${BASH_REMATCH[2]}"
+    expected="${BASH_REMATCH[3]}"
+    test_cases+=("$function" "$args" "$expected")
+  fi
+done < "$file"
+
+if [ ${#test_cases[@]} -eq 0 ]; then
+  echo -e "\e[33mNo test cases found in '$file'.\e[0m"
+  exit 0
+fi
+
+# Compile the file to WASM
+wasm_file="${file/.xn/.wasm}"
+set +e
+output=$(./xcc "$file" -o "$wasm_file" 2>&1)
+exit_code=$?
+set -e
+
+if [ $exit_code -ne 0 ]; then
+  echo -e "\e[31mFailed to compile $file:\e[0m"
+  echo "$output"
+  exit 1
+else
+  echo -e "\e[32mCompiled $file to $wasm_file.\e[0m"
+fi
+
+# Run and validate test cases
+returned=0
+echo -e "\e[34mRunning test cases:\e[0m"
+for ((i=0; i<${#test_cases[@]}; i+=3)); do
+  xn_file="$file"
+  args="${test_cases[i+1]}"
+  function="${test_cases[i]}"
+  expected="${test_cases[i+2]}"
+  wasm_file="${file/.xn/.wasm}"
+
+  # If no wasm file, skip
+  if [ ! -f "$wasm_file" ]; then
+    echo -e "\e[33mSkipping $xn_file::$function (no wasm file)\e[0m"
+    continue
+  fi
+
+  wasmer_output=$(wasmer run "$wasm_file" --invoke "$function" "--" $args 2>&1 || echo "error")
+  wasm_vm_output=$(./xrun "$wasm_file" --invoke "$function" $args 2>&1 || echo "error")
+  wasm_vm_last_line=$(echo "$wasm_vm_output" | tail -n1)
+
+  csv_args=$(echo "$args" | tr ' ' ',')
+  xin_echo="echo ${function}(${csv_args})"
+  xin_output=$($xin_echo | ./xin "$xn_file" 2>&1 || echo "error")
+  xin_last_line=$(echo "$xin_output" | tail -n2 | head -n1)
+  xin_last_line=${xin_last_line:3}
+
+  # if expected ends with ".0", then add it to wasmer_output
+  if [[ "$expected" == *".0" ]]; then
+    wasmer_output="$wasmer_output.0"
+  fi
+
+  if [[ "$wasmer_output" == "$expected" && "$wasm_vm_last_line" == "$expected" && "$xin_last_line" == "$expected" ]]; then
+    echo -e "\e[32m$xn_file::$function($csv_args) = $expected ✔\e[0m"
+  else
+    echo -e "\e[31mDiscrepancy in $xn_file::$function($csv_args)\e[0m"
+    echo "Expected: $expected"
+    echo "Wasmer Output: $wasmer_output"
+    echo "vm Output: $wasm_vm_output"
+    echo "xin Output: $xin_last_line"
+    returned=1
+  fi
+done
+
+# Clean up
+rm -f "$wasm_file"
+
+# Return status
+if [ $returned -eq 0 ]; then
+  echo -e "\e[32mAll tests passed.\e[0m"
+  exit 0
+else
+  echo -e "\e[31mSome tests failed.\e[0m"
+  exit 1
+fi

@@ -1,0 +1,15 @@
+fn bnest(x: i32) -> i32
+{
+    let result: mut i32 = x;
+
+    if (x == 0) {
+        return 0;
+    } else {
+        result = result + 1;
+    }
+    return result;
+}
+
+// TEST "bnest" IN "0" OUT "0"
+// TEST "bnest" IN "2" OUT "3"
+// TEST "bnest" IN "5" OUT "6"

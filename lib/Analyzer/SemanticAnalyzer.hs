@@ -34,6 +34,12 @@ data AnalysisError
   | UninitializedVariable String
   | InvalidExpression String
   | CustomError String
+  | UnreachableCode String
+  deriving (Show, Eq)
+
+data BlockStatus 
+  = BlockTerminated
+  | BlockOpen
   deriving (Show, Eq)
 
 data AnalysisResult = AnalysisResult 
@@ -67,28 +73,53 @@ exitScope ctx = ctx { scopeLevel = scopeLevel ctx - 1 }
 
 analyze :: Program -> Either [AnalysisError] AnalysisResult
 analyze prog@(Program stmts) = case analyzeStatements emptyContext stmts of
-  Right (newCtx, []) -> Right $ AnalysisResult prog newCtx
-  Right (_, errs) -> Left errs
+  Right (newCtx, _, []) -> Right $ AnalysisResult prog newCtx
+  Right (_, _, errs) -> Left errs
   Left errs -> Left errs
 
-analyzeStatements :: AnalysisContext -> [Statement] -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
-analyzeStatements ctx [] = Right (ctx, [])
+analyzeStatements :: AnalysisContext -> [Statement] -> Either [AnalysisError] (AnalysisContext, BlockStatus, [AnalysisError])
+analyzeStatements ctx [] = Right (ctx, BlockOpen, [])
 analyzeStatements ctx (stmt:stmts) = case analyzeStatement ctx stmt of
-  Right (ctx1, errs1) -> case analyzeStatements ctx1 stmts of
-    Right (ctx2, errs2) -> Right (ctx2, errs1 ++ errs2)
+  Right (ctx1, BlockTerminated, errs1) -> 
+    if null stmts 
+      then Right (ctx1, BlockTerminated, errs1)
+      else Left [UnreachableCode "Code after return statement is unreachable"]
+  Right (ctx1, BlockOpen, errs1) -> case analyzeStatements ctx1 stmts of
+    Right (ctx2, status, errs2) -> Right (ctx2, status, errs1 ++ errs2)
     Left errs -> Left errs
   Left errs -> Left errs
 
-analyzeStatement :: AnalysisContext -> Statement -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
+
+analyzeStatement :: AnalysisContext -> Statement -> Either [AnalysisError] (AnalysisContext, BlockStatus, [AnalysisError])
 analyzeStatement ctx stmt = case stmt of
-  VariableDeclaration name typ initExpr -> analyzeVarDecl ctx name typ initExpr
-  FunctionDeclaration name params retType body -> analyzeFuncDecl ctx name params retType body
-  WhileLoop cond body -> analyzeWhile ctx cond body
+  ReturnStatement expr -> case analyzeReturn ctx expr of
+    Right (ctx', errs) -> Right (ctx', BlockTerminated, errs)
+    Left err -> Left err
+
   If cond thenBody elseBody -> analyzeIf ctx cond thenBody elseBody
-  ReturnStatement expr -> analyzeReturn ctx expr
-  VariableReAssignment name expr -> analyzeAssignment ctx name expr
-  TypeDeclaration name typ -> analyzeTypeDecl ctx name typ
-  StandaloneFunctionCall name args -> analyzeFunctionCall ctx name args
+
+  WhileLoop cond body -> analyzeWhile ctx cond body 
+
+  VariableDeclaration name typ initExpr -> case analyzeVarDecl ctx name typ initExpr of
+    Right (ctx', errs) -> Right (ctx', BlockOpen, errs)
+    Left err -> Left err
+
+  FunctionDeclaration name params retType body -> case analyzeFuncDecl ctx name params retType body of
+    Right (ctx', errs) -> Right (ctx', BlockOpen, errs)
+    Left err -> Left err
+
+  VariableReAssignment name expr -> case analyzeAssignment ctx name expr of
+    Right (ctx', errs) -> Right (ctx', BlockOpen, errs)
+    Left err -> Left err
+
+  TypeDeclaration name typ -> case analyzeTypeDecl ctx name typ of
+    Right (ctx', errs) -> Right (ctx', BlockOpen, errs)
+    Left err -> Left err
+
+  StandaloneFunctionCall name args -> case analyzeFunctionCall ctx name args of
+    Right (ctx', errs) -> Right (ctx', BlockOpen, errs)
+    Left err -> Left err
+
 
 -------------------------------------------------------------------------------
 -- | Analysis Implementation
@@ -118,31 +149,40 @@ analyzeFuncDecl :: AnalysisContext -> String -> [Field] -> Type -> [Statement]
 analyzeFuncDecl ctx name params retType body =
   if Map.member name (functions ctx)
     then Left [DuplicateDefinition $ "Function " ++ name ++ " already declared"]
-    else case validateType ctx retType of
+    else case checkNameConflict ctx params of
       Left err -> Left err
-      Right validatedRetType -> case validateParams ctx params of
+      Right () -> case validateType ctx retType of
         Left err -> Left err
-        Right validatedParams -> 
-          let funcCtx = ctx { 
-                currentFunction = Just (name, validatedRetType),
-                functions = Map.insert name (validatedParams, validatedRetType) (functions ctx), -- Ajout ici
-                variables = foldr (\(pName, pType) vars -> 
-                  let isMutable = case pType of
-                        PrimitiveType Mutable _ -> True
-                        PointerType Mutable _ -> True
-                        _ -> False
-                  in Map.insert pName (pType, True, isMutable) vars)
-                  (variables ctx) 
-                  validatedParams
-              }
-          in case analyzeStatements (enterScope funcCtx) body of
-            Right (_, bodyErrs) -> 
-              if validatedRetType /= PrimitiveType Immutable I32
-                then Right (ctx { functions = Map.insert name (validatedParams, validatedRetType) (functions ctx) }, bodyErrs)
-                else if not (hasReturnStatement body) 
-                       then Left [MissingReturnStatement name]
-                       else Right (ctx { functions = Map.insert name (validatedParams, validatedRetType) (functions ctx) }, bodyErrs)
-            Left err -> Left err
+        Right validatedRetType -> case validateParams ctx params of
+          Left err -> Left err
+          Right validatedParams -> 
+            let funcCtx = ctx { 
+                  currentFunction = Just (name, validatedRetType),
+                  functions = Map.insert name (validatedParams, validatedRetType) (functions ctx),
+                  variables = foldr (\(pName, pType) vars -> 
+                    let isMutable = case pType of
+                          PrimitiveType Mutable _ -> True
+                          PointerType Mutable _ -> True
+                          _ -> False
+                    in Map.insert pName (pType, True, isMutable) vars)
+                    (variables ctx) 
+                    validatedParams
+                }
+            in case analyzeStatements (enterScope funcCtx) body of
+              Right (_, _, bodyErrs) -> 
+                if validatedRetType /= PrimitiveType Immutable I32
+                  then Right (ctx { functions = Map.insert name (validatedParams, validatedRetType) (functions ctx) }, bodyErrs)
+                  else case hasReturnStatement body of
+                         BlockTerminated -> Right (ctx { functions = Map.insert name (validatedParams, validatedRetType) (functions ctx) }, bodyErrs)
+                         BlockOpen -> Left [MissingReturnStatement name]
+              Left err -> Left err
+
+checkNameConflict :: AnalysisContext -> [Field] -> Either [AnalysisError] ()
+checkNameConflict ctx params = case findConflictingNames ctx params of
+  [] -> Right ()
+  conflicts -> Left [DuplicateDefinition $ "Parameter name conflicts with global variable: " ++ show conflicts]
+  where
+    findConflictingNames context = filter (\(name, _) -> Map.member name (variables context))
 
 validateParams :: AnalysisContext -> [Field] -> Either [AnalysisError] [Field]
 validateParams ctx = mapM validateField
@@ -155,44 +195,53 @@ validateParams ctx = mapM validateField
   -- If without else doesn't guarantee return
   -- While loop doesn't guarantee return
 -------------------------------------------------------------------------------
-hasReturnStatement :: [Statement] -> Bool
-hasReturnStatement [] = False
-hasReturnStatement (ReturnStatement _:_) = True
-hasReturnStatement (If _ thenStmts (Just elseStmts):xs) = 
-    hasReturnStatement thenStmts && hasReturnStatement elseStmts || hasReturnStatement xs
-hasReturnStatement (If _ _ Nothing:xs) = hasReturnStatement xs
-hasReturnStatement (WhileLoop _ _:xs) = hasReturnStatement xs
+
+-- hasReturnStatement with block 
+hasReturnStatement :: [Statement] -> BlockStatus
+hasReturnStatement [] = BlockOpen
+hasReturnStatement (ReturnStatement _:_) = BlockTerminated
+hasReturnStatement (If _ thenBody (Just elseBody):rest) = 
+  case (hasReturnStatement thenBody, hasReturnStatement elseBody) of
+    (BlockTerminated, BlockTerminated) -> BlockTerminated
+    _ -> hasReturnStatement rest
+hasReturnStatement (If _ _ Nothing:rest) = 
+  hasReturnStatement rest
+hasReturnStatement (WhileLoop _ _:rest) = hasReturnStatement rest
 hasReturnStatement (_:rest) = hasReturnStatement rest
 
 analyzeWhile :: AnalysisContext -> Expression -> [Statement] 
-             -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
+             -> Either [AnalysisError] (AnalysisContext, BlockStatus, [AnalysisError])
 analyzeWhile ctx cond body = case inferType ctx cond of
   Right (condType, condErrs) ->
     if not (isLogicalType condType)
       then Left [TypeMismatch (PrimitiveType Immutable I32) condType]
       else case analyzeStatements (enterScope ctx { inLoop = True }) body of
-        Right (_, bodyErrs) -> Right (exitScope ctx, condErrs ++ bodyErrs)
+        Right (_, _, bodyErrs) -> Right (exitScope ctx, BlockOpen, condErrs ++ bodyErrs)
         Left err -> Left err
   Left err -> Left err
 
 analyzeIf :: AnalysisContext -> Expression -> [Statement] -> Maybe [Statement]
-          -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
+          -> Either [AnalysisError] (AnalysisContext, BlockStatus, [AnalysisError])
 analyzeIf ctx cond thenBody elseBody = case inferType ctx cond of
   Right (condType, condErrs) ->
     if not (isLogicalType condType)
       then Left [TypeMismatch (PrimitiveType Immutable I32) condType]
       else let thenCtx = enterScope ctx
             in case analyzeStatements thenCtx thenBody of
-              Right (_, thenErrs) -> case analyzeElse ctx elseBody of
-                Right elseErrs -> Right (ctx, condErrs ++ thenErrs ++ elseErrs)
+              Right (_, thenStatus, thenErrs) -> case analyzeElse ctx elseBody of
+                Right (elseStatus, elseErrs) -> 
+                  let status = case (thenStatus, elseStatus) of
+                        (BlockTerminated, BlockTerminated) -> BlockTerminated
+                        _ -> BlockOpen
+                  in Right (ctx, status, condErrs ++ thenErrs ++ elseErrs)
                 Left err -> Left err
               Left err -> Left err
   Left err -> Left err
 
-analyzeElse :: AnalysisContext -> Maybe [Statement] -> Either [AnalysisError] [AnalysisError]
-analyzeElse _ Nothing = Right []
+analyzeElse :: AnalysisContext -> Maybe [Statement] -> Either [AnalysisError] (BlockStatus, [AnalysisError])
+analyzeElse _ Nothing = Right (BlockOpen, [])
 analyzeElse ctx (Just body) = case analyzeStatements (enterScope ctx) body of
-  Right (_, errs) -> Right errs
+  Right (_, status, errs) -> Right (status, errs)
   Left err -> Left err
 
 analyzeReturn :: AnalysisContext -> Expression -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
@@ -253,7 +302,11 @@ inferType ctx expr = case expr of
         else Left [UninitializedVariable name]
     Nothing -> Left [UndefinedVariable name]
       
-  ELiteral lit -> Right (literalType lit, [])
+  ELiteral lit -> case currentFunction ctx of
+    Just (_, expectedType) ->
+      Right (literalType expectedType lit, [])
+    Nothing ->
+      Right (literalType (PrimitiveType Immutable I32) lit, [])
       
   BinaryOp op e1 e2 -> case inferType ctx e1 of
     Right (t1, errs1) -> case inferType ctx e2 of
@@ -304,12 +357,6 @@ typeMatches _ _ = False
 compatibleTypes :: Type -> Type -> Bool
 compatibleTypes = typeMatches
 
--- isImplicitlyConvertible :: Type -> Type -> Bool
--- isImplicitlyConvertible (PrimitiveType _ I32) (PrimitiveType _ I64) = True
--- isImplicitlyConvertible (PrimitiveType _ I32) (PrimitiveType _ F32) = True
--- isImplicitlyConvertible (PrimitiveType _ I64) (PrimitiveType _ F64) = True
--- isImplicitlyConvertible _ _ = False
-
 -------------------------------------------------------------------------------
 -- | Helper Functions
 -------------------------------------------------------------------------------
@@ -321,11 +368,15 @@ resultType Mul t1 t2 | typeMatches t1 t2 && isNumericType t1 = t1
 resultType Div t1 t2 | typeMatches t1 t2 && isNumericType t1 = t1
 resultType Mod t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
 resultType BitAnd t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+                       | otherwise = error "Bitwise operations are only allowed on integer types"
 resultType BitOr t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+                      | otherwise = error "Bitwise operations are only allowed on integer types"
 resultType BitXor t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+                       | otherwise = error "Bitwise operations are only allowed on integer types"
 resultType Shl t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+                     | otherwise = error "Shift operations are only allowed on integer types"
 resultType Shr t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
--- Comparison operators still return i32
+                     | otherwise = error "Shift operations are only allowed on integer types"
 resultType Eq t1 t2 | typeMatches t1 t2 = PrimitiveType Immutable I32
 resultType Neq t1 t2 | typeMatches t1 t2 = PrimitiveType Immutable I32
 resultType Lt t1 t2 | typeMatches t1 t2 && isNumericType t1 = PrimitiveType Immutable I32
@@ -334,19 +385,31 @@ resultType Le t1 t2 | typeMatches t1 t2 && isNumericType t1 = PrimitiveType Immu
 resultType Ge t1 t2 | typeMatches t1 t2 && isNumericType t1 = PrimitiveType Immutable I32
 resultType And t1 t2 | isLogicalType t1 && isLogicalType t2 = PrimitiveType Immutable I32
 resultType Or t1 t2 | isLogicalType t1 && isLogicalType t2 = PrimitiveType Immutable I32
-resultType _ _ _ = PrimitiveType Immutable I32  -- Default case
+resultType op t1 t2 = error $ "Invalid operation " ++ show op ++ " between types " ++ show t1 ++ " and " ++ show t2
 
 unaryResultType :: UnaryOp -> Type -> Type
 unaryResultType Negate t | isLogicalType t = PrimitiveType Immutable I32
 unaryResultType Negative t | isNumericType t = t
-unaryResultType BitNot t | isIntegerType t = t
+unaryResultType BitNot (PrimitiveType mut I32) = PrimitiveType mut I32
+unaryResultType BitNot (PrimitiveType mut I64) = PrimitiveType mut I64
+unaryResultType BitNot (PrimitiveType mut t) 
+  | isIntegerType (PrimitiveType mut t) = PrimitiveType mut I32
 unaryResultType Dereference (PointerType _ t) = t
 unaryResultType AddressOf t = PointerType Immutable t
 unaryResultType _ t = t
 
-literalType :: Literal -> Type
-literalType (IntLiteral _) = PrimitiveType Immutable I32
-literalType (FloatLiteral _) = PrimitiveType Immutable F32
+literalType :: Type -> Literal -> Type
+literalType expectedType lit = case (expectedType, lit) of
+  (PrimitiveType mut I32, IntLiteral _) -> PrimitiveType mut I32
+  (PrimitiveType mut I64, IntLiteral _) -> PrimitiveType mut I64
+  (PrimitiveType mut U32, IntLiteral _) -> PrimitiveType mut U32
+  (PrimitiveType mut U64, IntLiteral _) -> PrimitiveType mut U64
+  (PrimitiveType mut F32, IntLiteral _) -> PrimitiveType mut F32
+  (PrimitiveType mut F64, IntLiteral _) -> PrimitiveType mut F64
+  (PrimitiveType mut F32, FloatLiteral _) -> PrimitiveType mut F32
+  (PrimitiveType mut F64, FloatLiteral _) -> PrimitiveType mut F64
+  (_, IntLiteral _) -> PrimitiveType Immutable I32
+  (_, FloatLiteral _) -> PrimitiveType Immutable F32
 
 isNumericType :: Type -> Bool
 isNumericType (PrimitiveType _ t) = case t of
@@ -376,8 +439,7 @@ isIntegerType (PrimitiveType _ t) = case t of
 isIntegerType _ = False
 
 isLogicalType :: Type -> Bool
-isLogicalType (PrimitiveType _ I32) = True
-isLogicalType _ = False
+isLogicalType t = isIntegerType t
 
 analyzeTypeDecl :: AnalysisContext -> String -> Type -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
 analyzeTypeDecl ctx name typ = do
@@ -387,4 +449,3 @@ analyzeTypeDecl ctx name typ = do
   validatedType <- validateType ctx typ
   let newTypes = Map.insert name validatedType (types ctx)
   Right (ctx { types = newTypes }, [])
-  

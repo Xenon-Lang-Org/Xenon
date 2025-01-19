@@ -1,0 +1,13 @@
+fn submul() -> i32
+{
+    let a: i32 = 50;
+    let b: i32 = 10;
+
+    let c: i32 = a - b;
+
+    let d: i32 = 5;
+
+    return c * d;
+}
+
+// TEST "submul" IN "" OUT "200"

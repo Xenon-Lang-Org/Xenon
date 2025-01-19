@@ -1,0 +1,9 @@
+fn const(a: i32) -> i32
+{
+    let b : i32 = 2;
+
+    return b + a;
+}
+
+// TEST "const" IN "0" OUT "2"
+// TEST "const" IN "1" OUT "3"

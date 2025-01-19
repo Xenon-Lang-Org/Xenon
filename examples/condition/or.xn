@@ -1,0 +1,16 @@
+fn ifor(a: i32, b: i32) -> i32
+{
+    if (a > 10 || b > 10)
+    {
+        return 1;
+    }
+    elif a == 10 && b == 10
+    {
+        return 2;
+    }
+    return 0;
+}
+
+// TEST "ifor" IN "12 5" OUT "1"
+// TEST "ifor" IN "5 12" OUT "1"
+// TEST "ifor" IN "5 5" OUT "0"

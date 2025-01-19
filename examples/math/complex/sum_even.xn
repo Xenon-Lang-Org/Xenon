@@ -1,0 +1,37 @@
+fn sum_even_32(start: i32, finish: i32) -> i32
+{
+    let is_even: i32 = (start % 2) == 0;
+    let sum: mut i32 = 0;
+
+    if (start > finish) {
+        return 0;
+    }
+    if (is_even) {
+        sum = start;
+    }
+    return sum + sum_even_32(start + 1, finish);
+}
+
+// TEST "sum_even_32" IN "1 8" OUT "20"
+// TEST "sum_even_32" IN "1 10" OUT "30"
+// TEST "sum_even_32" IN "1 12" OUT "42"
+// TEST "sum_even_32" IN "0 0" OUT "0"
+
+fn sum_even_64(start: i64, finish: i64) -> i64
+{
+    let is_even: i32 = (start % 2) == 0;
+    let sum: mut i64 = 0;
+
+    if (start > finish) {
+        return 0;
+    }
+    if (is_even) {
+        sum = start;
+    }
+    return sum + sum_even_64(start + 1, finish);
+}
+
+// TEST "sum_even_64" IN "1 8" OUT "20"
+// TEST "sum_even_64" IN "1 10" OUT "30"
+// TEST "sum_even_64" IN "1 12" OUT "42"
+// TEST "sum_even_64" IN "0 0" OUT "0"

@@ -1,0 +1,21 @@
+fn or_i32(a: i32, b: i32) -> i32
+{
+    let res: i32 = a | b;
+    return res;
+}
+
+// TEST "or_i32" IN "5 3" OUT "7"
+// TEST "or_i32" IN "6 3" OUT "7"
+// TEST "or_i32" IN "7 3" OUT "7"
+// TEST "or_i32" IN "8 3" OUT "11"
+
+fn or_i64(a: i64, b: i64) -> i64
+{
+    let res: i64 = a | b;
+    return res;
+}
+
+// TEST "or_i64" IN "5 3" OUT "7"
+// TEST "or_i64" IN "9223372036854775807 3" OUT "9223372036854775807"
+// TEST "or_i64" IN "7 3" OUT "7"
+// TEST "or_i64" IN "-9223372036854775808 3" OUT "-9223372036854775805"

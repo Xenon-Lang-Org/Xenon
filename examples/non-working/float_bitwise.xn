@@ -1,0 +1,10 @@
+fn test_float_bitwise() -> i32
+{
+    let a: f32 = 1.5;
+    let b: f32 = 2.5;
+    
+    let and_result: f32 = a & b;
+    let or_result: f32 = a | b;
+    let xor_result: f32 = a ^ b;
+    return 0;
+}

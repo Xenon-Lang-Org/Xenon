@@ -1,0 +1,9 @@
+//! Should error: scope
+fn scope_1() -> i32 {
+    let result: i32 = 5;
+    return result;
+}
+
+fn scope_2() -> i32 {
+    return result;
+}

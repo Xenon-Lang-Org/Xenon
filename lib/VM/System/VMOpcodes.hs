@@ -19,11 +19,15 @@ import VM.Data.VMTypes
 import VM.System.VMUtils
   ( advPC,
     f32BinOp,
+    f32BinBoolOp,
     f64BinOp,
+    f64BinBoolOp,
     i32BinOp,
     i32Unary,
     i64BinOp,
+    i64BinBoolOp,
     i64Unary,
+    i64UnaryBool,
     popI32,
     popVal,
     replaceTopFrame,
@@ -79,44 +83,44 @@ executeInstruction instr vm =
     I32Not -> i32Unary vm complement
     I64Not -> i64Unary vm complement
 
-    I32Shl -> i32BinOp vm (\x y -> x `shiftL` fromIntegral y)
-    I64Shl -> i64BinOp vm (\x y -> x `shiftL` fromIntegral y)
-
-    I32Shr -> i32BinOp vm (\x y -> x `shiftR` fromIntegral y)
-    I64Shr -> i64BinOp vm (\x y -> x `shiftR` fromIntegral y)
+    I32Shl -> i32BinOp vm (\x y -> x `shiftL` fromIntegral (y .&. 31))
+    I64Shl -> i64BinOp vm (\x y -> x `shiftL` fromIntegral (y .&. 63))
+    
+    I32Shr -> i32BinOp vm (\x y -> x `shiftR` fromIntegral (y .&. 31))
+    I64Shr -> i64BinOp vm (\x y -> x `shiftR` fromIntegral (y .&. 63))
 
     I32GtS -> i32BinOp vm (\x y -> if x > y then 1 else 0)
-    I64GtS -> i64BinOp vm (\x y -> if x > y then 1 else 0)
-    F32Gt -> f32BinOp vm (\x y -> if x > y then 1 else 0)
-    F64Gt -> f64BinOp vm (\x y -> if x > y then 1 else 0)
+    I64GtS -> i64BinBoolOp vm (\x y -> if x > y then 1 else 0)
+    F32Gt -> f32BinBoolOp vm (\x y -> if x > y then 1 else 0)
+    F64Gt -> f64BinBoolOp vm (\x y -> if x > y then 1 else 0)
 
     I32LtS -> i32BinOp vm (\x y -> if x < y then 1 else 0)
-    I64LtS -> i64BinOp vm (\x y -> if x < y then 1 else 0)
-    F32Lt -> f32BinOp vm (\x y -> if x < y then 1 else 0)
-    F64Lt -> f64BinOp vm (\x y -> if x < y then 1 else 0)
+    I64LtS -> i64BinBoolOp vm (\x y -> if x < y then 1 else 0)
+    F32Lt -> f32BinBoolOp vm (\x y -> if x < y then 1 else 0)
+    F64Lt -> f64BinBoolOp vm (\x y -> if x < y then 1 else 0)
 
     I32Eq -> i32BinOp vm (\x y -> if x == y then 1 else 0)
-    I64Eq -> i64BinOp vm (\x y -> if x == y then 1 else 0)
-    F32Eq -> f32BinOp vm (\x y -> if x == y then 1 else 0)
-    F64Eq -> f64BinOp vm (\x y -> if x == y then 1 else 0)
+    I64Eq -> i64BinBoolOp vm (\x y -> if x == y then 1 else 0)
+    F32Eq -> f32BinBoolOp vm (\x y -> if x == y then 1 else 0)
+    F64Eq -> f64BinBoolOp vm (\x y -> if x == y then 1 else 0)
 
     I32Ne -> i32BinOp vm (\x y -> if x /= y then 1 else 0)
-    I64Ne -> i64BinOp vm (\x y -> if x /= y then 1 else 0)
-    F32Ne -> f32BinOp vm (\x y -> if x /= y then 1 else 0)
-    F64Ne -> f64BinOp vm (\x y -> if x /= y then 1 else 0)
+    I64Ne -> i64BinBoolOp vm (\x y -> if x /= y then 1 else 0)
+    F32Ne -> f32BinBoolOp vm (\x y -> if x /= y then 1 else 0)
+    F64Ne -> f64BinBoolOp vm (\x y -> if x /= y then 1 else 0)
 
     I32GeS -> i32BinOp vm (\x y -> if x >= y then 1 else 0)
-    I64GeS -> i64BinOp vm (\x y -> if x >= y then 1 else 0)
-    F32Ge -> f32BinOp vm (\x y -> if x >= y then 1 else 0)
-    F64Ge -> f64BinOp vm (\x y -> if x >= y then 1 else 0)
+    I64GeS -> i64BinBoolOp vm (\x y -> if x >= y then 1 else 0)
+    F32Ge -> f32BinBoolOp vm (\x y -> if x >= y then 1 else 0)
+    F64Ge -> f64BinBoolOp vm (\x y -> if x >= y then 1 else 0)
 
     I32LeS -> i32BinOp vm (\x y -> if x <= y then 1 else 0)
-    I64LeS -> i64BinOp vm (\x y -> if x <= y then 1 else 0)
-    F32Le -> f32BinOp vm (\x y -> if x <= y then 1 else 0)
-    F64Le -> f64BinOp vm (\x y -> if x <= y then 1 else 0)
+    I64LeS -> i64BinBoolOp vm (\x y -> if x <= y then 1 else 0)
+    F32Le -> f32BinBoolOp vm (\x y -> if x <= y then 1 else 0)
+    F64Le -> f64BinBoolOp vm (\x y -> if x <= y then 1 else 0)
 
     I32Eqz -> i32Unary vm (\x -> if x == 0 then 1 else 0)
-    I64Eqz -> i64Unary vm (\x -> if x == 0 then 1 else 0)
+    I64Eqz -> i64UnaryBool vm (\x -> if x == 0 then 1 else 0)
 
     -- MEMORY
     LocalGet idx -> do

@@ -19,7 +19,6 @@ module Parser.Data.Ast
 where
 
 import Data.List(intercalate)
-import Data.Fixed(Pico)
 
 newtype Program = Program [Statement]
   deriving (Show, Eq)
@@ -104,7 +103,7 @@ data Literal
 
 instance Show Literal where
   show (IntLiteral n) = show n
-  show (FloatLiteral n) = show (realToFrac (realToFrac n :: Pico) :: Double)
+  show (FloatLiteral n) = show n
 
 data BinOp
   = Add -- +

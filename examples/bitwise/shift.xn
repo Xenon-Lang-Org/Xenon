@@ -1,0 +1,39 @@
+fn shl_i32(a: i32, b: i32) -> i32
+{
+    let res: i32 = a << b;
+    return res;
+}
+
+// TEST "shl_i32" IN "5 3" OUT "40"
+// TEST "shl_i32" IN "1 31" OUT "-2147483648"
+// TEST "shl_i32" IN "1 32" OUT "1"
+
+fn shr_i32(a: i32, b: i32) -> i32
+{
+    let res: i32 = a >> b;
+    return res;
+}
+
+// TEST "shr_i32" IN "40 3" OUT "5"
+// TEST "shr_i32" IN "-2147483648 31" OUT "-1"
+// TEST "shr_i32" IN "1 32" OUT "1"
+
+fn shl_i64(a: i64, b: i64) -> i64
+{
+    let res: i64 = a << b;
+    return res;
+}
+
+// TEST "shl_i64" IN "5 3" OUT "40"
+// TEST "shl_i64" IN "1 63" OUT "-9223372036854775808"
+// TEST "shl_i64" IN "1 64" OUT "1"
+
+fn shr_i64(a: i64, b: i64) -> i64
+{
+    let res: i64 = a >> b;
+    return res;
+}
+
+// TEST "shr_i64" IN "40 3" OUT "5"
+// TEST "shr_i64" IN "-9223372036854775808 63" OUT "-1"
+// TEST "shr_i64" IN "1 64" OUT "1"
