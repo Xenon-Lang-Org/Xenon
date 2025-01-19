@@ -190,9 +190,10 @@ callFunc :: Env -> String -> [Expression] -> Result String Eval
 callFunc e n args = do
     func <- fromEnv e n
     case func of
-        EFunction _ params _ body -> do
+        EFunction _ params rt body -> do
             (e', args') <- evalAllExpr e args
             ce <- callEnv e' args' params
             (ce', expr') <- evalBody ce body
-            return (popScope ce', fromMaybe zeroExpr expr')
+            cexpr <- castExpr ce' (fromMaybe zeroExpr expr') rt
+            return (popScope ce', cexpr)
         _ -> Err $ n ++ " is not callable"

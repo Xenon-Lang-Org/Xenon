@@ -1,0 +1,7 @@
+//! Should error: immutable
+fn test() -> i32 {
+    let immutable_var: i32 = 42;
+
+    immutable_var = 43;
+    return immutable_var;
+}

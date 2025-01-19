@@ -1,0 +1,17 @@
+fn cops() -> i32
+{
+    let a: i32 = 5;
+    let b: i32 = 6;
+
+    let c: i32 = a * b;
+
+    let d: i32 = 10;
+
+    let e: i32 = c + d;
+
+    let f: i32 = 2;
+
+    let g: i32 = e - f;
+
+    return g;
+}

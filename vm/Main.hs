@@ -63,10 +63,7 @@ parseArg V_F32 str = do
     else Left $ "Value out of range or precision loss for f32: " ++ str
 parseArg V_F64 str = do
   n <- readEither str :: Either String Double
-  let d = realToFrac n :: Double
-  if abs (d - n) < 1e-15
-    then Right $ F64 d
-    else Left $ "Value out of range or precision loss for f64: " ++ str
+  Right $ F64 n
 
 parseArgs :: [ValType] -> [String] -> Either String [Value]
 parseArgs [] [] = Right []

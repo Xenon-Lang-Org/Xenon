@@ -159,7 +159,7 @@ keyword :: String -> TokenType -> Lexer Token
 keyword str ttype = lexeme . MP.try $ do
   pos <- MP.getSourcePos
   _ <- C.string str
-  MP.notFollowedBy C.alphaNumChar
+  MP.notFollowedBy (C.alphaNumChar MP.<|> C.char '_')
   return $ Token pos ttype
 
 -------------------------------------------------------------------------------

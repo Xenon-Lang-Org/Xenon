@@ -17,7 +17,9 @@ compile filename output = do
                     printModule filledModule
                     writeWasmModule output filledModule
                 Left analyzeErr -> error $ show analyzeErr
-        Err err -> print err
+        Err err -> error $ show err
+            
+            
 
 checkFileName :: String -> Bool
 checkFileName filename = (length filename) > 3 && (drop (length filename - 3) filename) == ".xn"
