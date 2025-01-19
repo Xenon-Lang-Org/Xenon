@@ -1,16 +1,33 @@
-fn fibo(n: i32) -> i32
+fn fibo_32(n: i32) -> i32
 {
     if (n < 2) {
         return n;
     }
-    // return fibo(n - 1) + fibo(n - 2); FAILS
+    // return fibo_32(n - 1) + fibo_32(n - 2); FAILS
 
-    let a: i32 = fibo(n - 1);
-    let b: i32 = fibo(n - 2);
+    let a: i32 = fibo_32(n - 1);
+    let b: i32 = fibo_32(n - 2);
     return a + b;
 }
 
-// TEST "fibo" IN "0" OUT "0"
-// TEST "fibo" IN "6" OUT "8"
-// TEST "fibo" IN "10" OUT "55"
-// TEST "fibo" IN "15" OUT "610"
+// TEST "fibo_32" IN "0" OUT "0"
+// TEST "fibo_32" IN "6" OUT "8"
+// TEST "fibo_32" IN "10" OUT "55"
+// TEST "fibo_32" IN "15" OUT "610"
+
+fn fibo_64(n: i64) -> i64
+{
+    if (n < 2) {
+        return n;
+    }
+    // return fibo_64(n - 1) + fibo_64(n - 2); FAILS
+
+    let a: i64 = fibo_64(n - 1);
+    let b: i64 = fibo_64(n - 2);
+    return a + b;
+}
+
+// TEST "fibo_64" IN "0" OUT "0"
+// TEST "fibo_64" IN "6" OUT "8"
+// TEST "fibo_64" IN "10" OUT "55"
+// TEST "fibo_64" IN "15" OUT "610"

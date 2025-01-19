@@ -1,4 +1,4 @@
-fn pow(n: i32, p: i32) -> i32
+fn pow_32(n: i32, p: i32) -> i32
 {
     let i: mut i32 = 1;
     let res: mut i32 = n;
@@ -16,7 +16,30 @@ fn pow(n: i32, p: i32) -> i32
     return res;
 }
 
-// TEST "pow" IN "2 0" OUT "1"
-// TEST "pow" IN "2 1" OUT "2"
-// TEST "pow" IN "2 2" OUT "4"
-// TEST "pow" IN "5 3" OUT "125"
+// TEST "pow_32" IN "2 0" OUT "1"
+// TEST "pow_32" IN "2 1" OUT "2"
+// TEST "pow_32" IN "2 2" OUT "4"
+// TEST "pow_32" IN "5 3" OUT "125"
+
+fn pow_64(n: i64, p: i64) -> i64
+{
+    let i: mut i64 = 1;
+    let res: mut i64 = n;
+
+    if (p == 0) {
+        return 1;
+    }
+    if (p == 1) {
+        return n;
+    }
+    while (i < p) {
+        res = res * n;
+        i = i + 1;
+    }
+    return res;
+}
+
+// TEST "pow_64" IN "2 0" OUT "1"
+// TEST "pow_64" IN "2 1" OUT "2"
+// TEST "pow_64" IN "2 2" OUT "4"
+// TEST "pow_64" IN "5 3" OUT "125"

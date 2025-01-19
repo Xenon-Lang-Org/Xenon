@@ -1,0 +1,6 @@
+fn add_3(a: i64) -> i64
+{
+    return a + 3;
+}
+
+// TEST "add_3" IN "5" OUT "8"

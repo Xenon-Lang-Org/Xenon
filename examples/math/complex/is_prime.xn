@@ -1,4 +1,4 @@
-fn is_prime(nb: i32) -> i32
+fn is_prime_32(nb: i32) -> i32
 {
     let i: mut i32 = 2;
 
@@ -14,7 +14,28 @@ fn is_prime(nb: i32) -> i32
     return 1;
 }
 
-// TEST "is_prime" IN "0" OUT "0"
-// TEST "is_prime" IN "9" OUT "0"
-// TEST "is_prime" IN "11" OUT "1"
-// TEST "is_prime" IN "13" OUT "1"
+// TEST "is_prime_32" IN "0" OUT "0"
+// TEST "is_prime_32" IN "9" OUT "0"
+// TEST "is_prime_32" IN "11" OUT "1"
+// TEST "is_prime_32" IN "13" OUT "1"
+
+fn is_prime_64(nb: i64) -> i64
+{
+    let i: mut i64 = 2;
+
+    if (nb == 0 || nb == 1) {
+        return 0;
+    }
+    while (i < nb) {
+        if (nb % i == 0) {
+            return 0;
+        }
+        i = i + 1;
+    }
+    return 1;
+}
+
+// TEST "is_prime_64" IN "0" OUT "0"
+// TEST "is_prime_64" IN "9" OUT "0"
+// TEST "is_prime_64" IN "11" OUT "1"
+// TEST "is_prime_64" IN "13" OUT "1"
