@@ -344,12 +344,6 @@ typeMatches _ _ = False
 compatibleTypes :: Type -> Type -> Bool
 compatibleTypes = typeMatches
 
--- isImplicitlyConvertible :: Type -> Type -> Bool
--- isImplicitlyConvertible (PrimitiveType _ I32) (PrimitiveType _ I64) = True
--- isImplicitlyConvertible (PrimitiveType _ I32) (PrimitiveType _ F32) = True
--- isImplicitlyConvertible (PrimitiveType _ I64) (PrimitiveType _ F64) = True
--- isImplicitlyConvertible _ _ = False
-
 -------------------------------------------------------------------------------
 -- | Helper Functions
 -------------------------------------------------------------------------------
@@ -361,10 +355,15 @@ resultType Mul t1 t2 | typeMatches t1 t2 && isNumericType t1 = t1
 resultType Div t1 t2 | typeMatches t1 t2 && isNumericType t1 = t1
 resultType Mod t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
 resultType BitAnd t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+                       | otherwise = error "Bitwise operations are only allowed on integer types"
 resultType BitOr t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+                      | otherwise = error "Bitwise operations are only allowed on integer types"
 resultType BitXor t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+                       | otherwise = error "Bitwise operations are only allowed on integer types"
 resultType Shl t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+                     | otherwise = error "Shift operations are only allowed on integer types"
 resultType Shr t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+                     | otherwise = error "Shift operations are only allowed on integer types"
 resultType Eq t1 t2 | typeMatches t1 t2 = PrimitiveType Immutable I32
 resultType Neq t1 t2 | typeMatches t1 t2 = PrimitiveType Immutable I32
 resultType Lt t1 t2 | typeMatches t1 t2 && isNumericType t1 = PrimitiveType Immutable I32
@@ -373,7 +372,7 @@ resultType Le t1 t2 | typeMatches t1 t2 && isNumericType t1 = PrimitiveType Immu
 resultType Ge t1 t2 | typeMatches t1 t2 && isNumericType t1 = PrimitiveType Immutable I32
 resultType And t1 t2 | isLogicalType t1 && isLogicalType t2 = PrimitiveType Immutable I32
 resultType Or t1 t2 | isLogicalType t1 && isLogicalType t2 = PrimitiveType Immutable I32
-resultType _ _ _ = PrimitiveType Immutable I32
+resultType op t1 t2 = error $ "Invalid operation " ++ show op ++ " between types " ++ show t1 ++ " and " ++ show t2
 
 unaryResultType :: UnaryOp -> Type -> Type
 unaryResultType Negate t | isLogicalType t = PrimitiveType Immutable I32
