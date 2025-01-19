@@ -69,7 +69,7 @@ evalBinFloat op l r = case op of
 evalBinBits :: NumBits a => BinOp -> a -> a -> a
 evalBinBits op l r = case op of
     Div -> l `div` r
-    Mod -> l `mod` r
+    Mod -> l `rem` r
     BitAnd -> (.&.) l r
     BitOr -> (.|.) l r
     BitXor -> (.^.) l r
