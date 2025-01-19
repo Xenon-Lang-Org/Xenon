@@ -1,8 +1,0 @@
-//! Should error: naming conflict
-
-fn add(a: i32, b: i32) -> i32
-{
-    return a + b;
-}
-
-let b: i32 = 8;

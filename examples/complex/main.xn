@@ -43,14 +43,14 @@ fn add(a: i32, b: i32) -> i32
 
 // TEST "add" IN "4 6" OUT "10"
 
-let b: i32 = 8;
+let glob: i32 = 8;
 
 fn main() -> i32
 {
     let a: i32 = add(is_prime(2), is_prime(3));
     let result: mut i32 = 0;
 
-    result = pow(a, b);
+    result = pow(a, glob);
     return result;
 }
 
