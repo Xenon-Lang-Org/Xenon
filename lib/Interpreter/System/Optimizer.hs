@@ -66,21 +66,21 @@ optimizeStatement e s@(VariableDeclaration n t v) = if isMutable t
         e' <- pushVariable e s
         return (e', [], True)
 optimizeStatement e (FunctionDeclaration n p rt b) = do
-    (b', ob) <- optimizeBodyMax (pushScope e []) False b
+    (_, b', ob) <- optimizeBodyMax (pushScope e []) False b
     return (e, [FunctionDeclaration n p rt b'], ob)
 optimizeStatement e (WhileLoop cond b) = do
     (cond', ocond) <- optimizeExpr e cond
     return (e, [WhileLoop cond' b], ocond)
 optimizeStatement e (If cond b eb) = do
     (cond', ocond) <- optimizeExpr e cond
-    (benv, b', ob) <- optimizeBody e b
-    (ebenv, eb', oeb) <- optimizeBody e (fromMaybe [] eb)
+    (benv, b', ob) <- optimizeBodyMax e False b
+    (ebenv, eb', oeb) <- optimizeBodyMax e False (fromMaybe [] eb)
     if isStatic cond'
         then if toBool cond'
             then Ok (benv, b', True)
             else Ok (ebenv, eb', True)
         else if allBranchesReturn b'
-            then Ok (e, If cond' b' Nothing : eb', ob || oeb)
+            then Ok (e, If cond' b' Nothing : eb', ob || oeb || (not . null) eb')
             else Ok (e, [If cond' b' (nothingIfEmpty eb')], ocond || ob || oeb)
 optimizeStatement e s@(TypeDeclaration {}) = Ok (e, [s], False)
 optimizeStatement e (ReturnStatement ex) = do
@@ -97,19 +97,22 @@ optimizeStatement e (VariableReAssignment n ex) = do
 
 optimizeBody :: Env -> Body -> Result String (Env, Body, Bool)
 optimizeBody e [] = Ok (e, [], False)
+optimizeBody e (s@(ReturnStatement _):_:_) = do
+    (e', sl, _) <- optimizeStatement e s
+    return (e', sl, True)
 optimizeBody e (s:xs) = do
     (e', sl, so) <- optimizeStatement e s
     (e'', xs', bo) <- optimizeBody e' xs
     return (e'', sl ++ xs', so || bo)
 
-optimizeBodyMax :: Env -> Bool -> Body -> Result String (Body, Bool)
+optimizeBodyMax :: Env -> Bool -> Body -> Result String (Env, Body, Bool)
 optimizeBodyMax e o b = do
     (e', b', ob) <- optimizeBody e b
-    if ob then optimizeBodyMax e' True b' else Ok (b', o)
+    if ob then optimizeBodyMax e' True b' else Ok (e', b', o)
 
 -- Program
 
 optimizeProg :: Program -> Result String Program
 optimizeProg (Program b) = do
-    (b', _) <- optimizeBodyMax env False b
+    (_, b', _) <- optimizeBodyMax env False b
     return (Program b')
