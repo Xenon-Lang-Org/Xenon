@@ -26,9 +26,9 @@ jobs:
       - name: Package Binaries
         run: |
           mkdir -p release/
-          cp $(stack path --local-install-root)/compiler release/
-          cp $(stack path --local-install-root)/vm release/
-          cp $(stack path --local-install-root)/interpreter release/
+          cp $(stack path --local-install-root)/bin/compiler release/
+          cp $(stack path --local-install-root)/bim/vm release/
+          cp $(stack path --local-install-root)/bin/interpreter release/
           tar czf xenon-${{ github.ref_name }}.tar.gz release/
 
       - name: Create Release
