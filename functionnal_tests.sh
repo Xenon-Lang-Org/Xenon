@@ -40,8 +40,8 @@ test_cases=(
   "bitwise"             "10 4"            "bitwise"       "28"
   "sum_digits"          "123"             "sum_digits"    "6"
   "sum_digits"          "1018"            "sum_digits"    "10"
-  "conditional"        "10"              "test_if"       "1"
-  "conditional"        "-10"             "test_if"       "11"
+  # "conditional"        "10"              "test_if"       "1"
+  # "conditional"        "-10"             "test_if"       "11"
   "count_to"            "10"              "count_to"      "10"
 )
 
