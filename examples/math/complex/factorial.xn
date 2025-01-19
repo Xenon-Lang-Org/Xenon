@@ -1,0 +1,13 @@
+fn fact(n: i32) -> i32
+{
+    if (n == 0) {
+        return 1;
+    }
+    return n * fact(n - 1);
+}
+
+// TEST "fact" IN "5" OUT "120"
+// TEST "fact" IN "0" OUT "1"
+// TEST "fact" IN "1" OUT "1"
+// TEST "fact" IN "2" OUT "2"
+// TEST "fact" IN "3" OUT "6"

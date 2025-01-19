@@ -1,7 +1,0 @@
-fn bitwise(a: i32, b: i32) -> i32
-{
-    let and_result: i32 = a & b;
-    let or_result: i32 = a | b;
-    let xor_result: i32 = a ^ b;
-    return and_result + or_result + xor_result;
-}

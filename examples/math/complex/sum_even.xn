@@ -1,0 +1,18 @@
+fn sum_even(start: i32, finish: i32) -> i32
+{
+    let is_even: i32 = (start % 2) == 0;
+    let sum: mut i32 = 0;
+
+    if (start > finish) {
+        return 0;
+    }
+    if (is_even) {
+        sum = start;
+    }
+    return sum + sum_even(start + 1, finish);
+}
+
+// TEST "sum_even" IN "1 8" OUT "20"
+// TEST "sum_even" IN "1 10" OUT "30"
+// TEST "sum_even" IN "1 12" OUT "42"
+// TEST "sum_even" IN "0 0" OUT "0"

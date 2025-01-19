@@ -1,0 +1,16 @@
+fn count_one_bits(n: i32) -> i32
+{
+    let count: mut i32 = 0;
+    let num: mut i32 = n;
+
+    while (num > 0) {
+        count = count + (num & 1);
+        num = num >> 1;
+    }
+    return count;
+}
+
+// TEST "count_one_bits" IN "0" OUT "0"
+// TEST "count_one_bits" IN "1" OUT "1"
+// TEST "count_one_bits" IN "2" OUT "1"
+// TEST "count_one_bits" IN "3" OUT "2"

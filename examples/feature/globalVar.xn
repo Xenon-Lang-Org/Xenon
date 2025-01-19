@@ -1,0 +1,9 @@
+let counter: mut i32 = 0;
+
+fn gvar() -> i32
+{
+    counter = counter + 1;
+    return counter;
+}
+
+// TEST "gvar" IN "" OUT "1"

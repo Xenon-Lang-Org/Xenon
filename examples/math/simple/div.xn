@@ -1,0 +1,41 @@
+fn div_i32(a: i32, b: i32) -> i32
+{
+    return a / b;
+}
+
+// TEST "div_i32" IN "10 2" OUT "5"
+// TEST "div_i32" IN "-14 7" OUT "-2"
+// TEST "div_i32" IN "0 1" OUT "0"
+// TEST "div_i32" IN "1 1" OUT "1"
+// TEST "div_i32" IN "2147483647 -1" OUT "-2147483647"
+
+fn div_i64(a: i64, b: i64) -> i64
+{
+    return a / b;
+}
+
+// TEST "div_i64" IN "10 2" OUT "5"
+// TEST "div_i64" IN "-14 7" OUT "-2"
+// TEST "div_i64" IN "0 1" OUT "0"
+// TEST "div_i64" IN "1 1" OUT "1"
+// TEST "div_i64" IN "9223372036854775807 -1" OUT "-9223372036854775807"
+
+fn div_f32(a: f32, b: f32) -> f32
+{
+    return a / b;
+}
+
+// TEST "div_f32" IN "10.0 2.0" OUT "5.0"
+// TEST "div_f32" IN "-14.0 7.0" OUT "-2.0"
+// TEST "div_f32" IN "0.0 1.0" OUT "0.0"
+// TEST "div_f32" IN "1.0 1.0" OUT "1.0"
+
+fn div_f64(a: f64, b: f64) -> f64
+{
+    return a / b;
+}
+
+// TEST "div_f64" IN "10.0 2.0" OUT "5.0"
+// TEST "div_f64" IN "-14.0 7.0" OUT "-2.0"
+// TEST "div_f64" IN "0.0 1.0" OUT "0.0"
+// TEST "div_f64" IN "1.0 1.0" OUT "1.0"

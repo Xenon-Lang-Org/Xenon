@@ -1,0 +1,23 @@
+fn foo(a: i32) -> i32
+{
+    let b: i32 = 6;
+
+    let c: i32 = a * b;
+
+    let d: i32 = 10;
+
+    return c + d;
+}
+
+fn bar() -> i32
+{
+    let a: i32 = 5;
+
+    let b: i32 = foo(a);
+
+    let c: i32 = 2;
+
+    return b - c;
+}
+
+// TEST "bar" IN "" OUT "38"

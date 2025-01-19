@@ -1,0 +1,15 @@
+fn test_if(x: i32) -> i32
+{
+    if (x > 0) {
+        return 1;
+    } elif (x < 0) {
+        return 11;
+    } else {
+        return 0;
+    }
+    return 0;
+}
+
+// TEST "test_if" IN "0" OUT "0"
+// TEST "test_if" IN "10" OUT "1"
+// TEST "test_if" IN "-10" OUT "11"

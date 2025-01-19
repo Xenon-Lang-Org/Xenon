@@ -1,10 +1,14 @@
 module VM.System.VMUtils
   ( i32BinOp,
     i64BinOp,
+    i64BinBoolOp,
     i32Unary,
     i64Unary,
+    i64UnaryBool,
     f32BinOp,
+    f32BinBoolOp,
     f64BinOp,
+    f64BinBoolOp,
     advPC,
     topFrame,
     replaceTopFrame,
@@ -32,6 +36,12 @@ i64BinOp vm f = do
   (y, vm2) <- popI64 vm1
   advPC vm2 (vm2 {operandStack = I64 (f y x) : operandStack vm2})
 
+i64BinBoolOp :: VM -> (Int64 -> Int64 -> Int32) -> Either String VM
+i64BinBoolOp vm f = do
+  (x, vm1) <- popI64 vm
+  (y, vm2) <- popI64 vm1
+  advPC vm2 (vm2 {operandStack = I32 (f y x) : operandStack vm2})
+
 i32Unary :: VM -> (Int32 -> Int32) -> Either String VM
 i32Unary vm f = do
   (x, vm1) <- popI32 vm
@@ -42,17 +52,34 @@ i64Unary vm f = do
   (x, vm1) <- popI64 vm
   advPC vm1 (vm1 {operandStack = I64 (f x) : operandStack vm1})
 
+i64UnaryBool :: VM -> (Int64 -> Int32) -> Either String VM
+i64UnaryBool vm f = do
+  (x, vm1) <- popI64 vm
+  advPC vm1 (vm1 {operandStack = I32 (f x) : operandStack vm1})
+
 f32BinOp :: VM -> (Float -> Float -> Float) -> Either String VM
 f32BinOp vm f = do
   (x, vm1) <- popF32 vm
   (y, vm2) <- popF32 vm1
   advPC vm2 (vm2 {operandStack = F32 (f y x) : operandStack vm2})
 
+f32BinBoolOp :: VM -> (Float -> Float -> Int32) -> Either String VM
+f32BinBoolOp vm f = do
+  (x, vm1) <- popF32 vm
+  (y, vm2) <- popF32 vm1
+  advPC vm2 (vm2 {operandStack = I32 (f y x) : operandStack vm2})
+
 f64BinOp :: VM -> (Double -> Double -> Double) -> Either String VM
 f64BinOp vm f = do
   (x, vm1) <- popF64 vm
   (y, vm2) <- popF64 vm1
   advPC vm2 (vm2 {operandStack = F64 (f y x) : operandStack vm2})
+
+f64BinBoolOp :: VM -> (Double -> Double -> Int32) -> Either String VM
+f64BinBoolOp vm f = do
+  (x, vm1) <- popF64 vm
+  (y, vm2) <- popF64 vm1
+  advPC vm2 (vm2 {operandStack = I32 (f y x) : operandStack vm2})
 
 popI32 :: VM -> Either String (Int32, VM)
 popI32 vm = do

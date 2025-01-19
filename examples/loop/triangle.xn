@@ -1,0 +1,16 @@
+fn loop(n: mut i32) -> i32
+{
+    let sum: mut i32 = 0;
+
+    while (n != 0)
+    {
+        sum = sum + n;
+        n = n - 1;
+    }
+    return sum;
+}
+
+// TEST "loop" IN "0" OUT "0"
+// TEST "loop" IN "1" OUT "1"
+// TEST "loop" IN "12" OUT "78"
+// TEST "loop" IN "100" OUT "5050"

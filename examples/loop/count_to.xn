@@ -1,0 +1,14 @@
+fn dowhile(a: i32) -> i32
+{
+    let x: mut i32 = 0;
+
+    while x < a
+    {
+        x = x + 1;
+    }
+    return x;
+}
+
+// TEST "dowhile" IN "0" OUT "0"
+// TEST "dowhile" IN "1" OUT "1"
+// TEST "dowhile" IN "12" OUT "12"
