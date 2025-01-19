@@ -8,5 +8,6 @@ fn ifor(a: i32, b: i32) -> i32
     {
         return 0;
     }
-    return 2;
+    let c: i32 = 2;
+    return c;
 }
