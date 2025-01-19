@@ -1,0 +1,14 @@
+fn valid_bitwise() -> i32
+{
+    let a: i32 = 12;  // 1100 en binaire
+    let b: i32 = 10;  // 1010 en binaire
+    
+    //? devrait donner 8 (1000)
+    let and_result: i32 = a & b;
+    //? devrait donner 14 (1110)
+    let or_result: i32 = a | b;
+    //? devrait donner 6 (0110)
+    let xor_result: i32 = a ^ b;
+    
+    return and_result + or_result + xor_result;
+}
