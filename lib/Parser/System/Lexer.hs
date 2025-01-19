@@ -289,6 +289,12 @@ pXor = symbol "^" TBitXor
 pNor :: Lexer Token
 pNor = symbol "~" TNor
 
+pLShift :: Lexer Token
+pLShift = symbol "<<" TLShift
+
+pRShift :: Lexer Token
+pRShift = symbol ">>" TRShift
+
 -- Integer and Float literals
 pIntLit :: Lexer Token
 pIntLit = lexeme $ do
@@ -340,6 +346,8 @@ tokenParser =
       pNotEq,
       pLessEq,
       pGreaterEq,
+      pLShift,
+      pRShift,
       pEqSign,
       pOpenParen,
       pCloseParen,
