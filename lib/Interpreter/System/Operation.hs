@@ -12,7 +12,7 @@ import Control.Applicative
 
 class (Num a, Ord a) => Numeric a
 class (Numeric a, Integral a, Bits a) => NumBits a
-class (Numeric a, Fractional a) => NumFloat a
+class (RealFrac a, Numeric a, Fractional a) => NumFloat a
 
 instance Numeric Double
 instance NumFloat Double
@@ -30,13 +30,20 @@ toBool 0 = False
 toBool _ = True
 
 toNumFloat :: NumFloat a => Expression -> Result String a
-toNumFloat (ELiteral (FloatLiteral n)) = Ok $ realToFrac n 
+toNumFloat (ELiteral (FloatLiteral n)) = Ok $ realToFrac n
 toNumFloat (ELiteral (IntLiteral n)) = Ok $ fromIntegral n
 toNumFloat _ = Err "Invalid binary operator argument"
 
 toNumBits :: NumBits a => Expression -> Result String a
 toNumBits (ELiteral (IntLiteral n)) = Ok $ fromIntegral n
 toNumBits n = Err ("Invalid binary operator argument " ++ show n)
+
+roundNumFloat :: NumFloat a => a -> a
+roundNumFloat n = integral (round (n * factor)) / factor
+    where
+        factor = 1000000000000
+        integral :: NumFloat a => Integer -> a
+        integral = fromIntegral
 
 -- Binary Operations
 
@@ -78,10 +85,10 @@ evalBinBits op l r = case op of
     _ -> evalBin op l r
 
 floatBinEval :: BinOp -> Expression -> Expression -> Result String Expression
-floatBinEval Div _ (ELiteral (IntLiteral 0)) = Err "Division by zero" 
-floatBinEval Div _ (ELiteral (FloatLiteral 0)) = Err "Division by zero" 
+floatBinEval Div _ (ELiteral (IntLiteral 0)) = Err "Division by zero"
+floatBinEval Div _ (ELiteral (FloatLiteral 0)) = Err "Division by zero"
 floatBinEval op l r = case mapBoth toNumFloat (l, r) of
-    Ok (l', r') -> Ok $ ELiteral $ FloatLiteral $ evalBinFloat op l' r'
+    Ok (l', r') -> Ok $ ELiteral $ FloatLiteral $ roundNumFloat $ evalBinFloat op l' r'
     Err msg -> Err msg
 
 bitsBinEval :: BinOp -> Expression -> Expression -> Result String Expression
@@ -113,7 +120,7 @@ bitsUnaryEval op ex = case toNumBits ex of
 
 floatUnaryEval :: UnaryOp -> Expression -> Result String Expression
 floatUnaryEval op ex = case toNumFloat ex of
-    Ok ex' -> Ok $ ELiteral $ FloatLiteral $ evalUnaryFloat op ex'
+    Ok ex' -> Ok $ ELiteral $ FloatLiteral $ roundNumFloat $ evalUnaryFloat op ex'
     Err m -> Err m
 
 evalUnaryOp :: UnaryOp -> Expression -> Result String Expression
