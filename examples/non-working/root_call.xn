@@ -1,0 +1,7 @@
+// PAS OK - if statement à la racine
+fn foo() -> i32
+{ 
+    return 1;
+}
+
+foo();

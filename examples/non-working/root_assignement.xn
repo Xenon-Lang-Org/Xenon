@@ -1,0 +1,4 @@
+// PAS OK - if statement à la racine
+let x: i32 = 42;
+
+x = 43;
