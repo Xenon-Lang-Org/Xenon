@@ -41,6 +41,9 @@ jobs:
 
       - name: Run unit tests
         run: stack test
+
+      - name: Setup Wasmer
+        uses: wasmerio/setup-wasmer@v3.1
       
       - name: Run functionnal tests
         run: make func_tests
