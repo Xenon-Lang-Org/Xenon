@@ -13,7 +13,9 @@ module Interpreter.Data.Environment
         pushEnv,
         assignVar,
         envAll,
-        envAllNames
+        envAllNames,
+        getFunction,
+        getVarValue
     )
 where
 
@@ -141,3 +143,13 @@ pushType e (TypeDeclaration n t) = case (fromScope . localScope) e n of
     Just _ -> Err $ n ++ " redefined"
     _ -> Ok $ pushEnv e (EType n t)
 pushType _ t = Err $ "Bad type definition (" ++ show t ++ ")"
+
+getFunction :: Env -> String -> Result String EnvVar
+getFunction e n = case fromEnv e n of
+    Ok f@(EFunction {}) -> Ok f
+    _ -> Err $ "Undefined function " ++ n
+
+getVarValue :: Env -> String -> Result String Expression
+getVarValue e n = case fromEnv e n of
+    Ok (EVariable _ _ ex) -> Ok ex
+    _ -> Err $ "Undefined variable " ++ n 
