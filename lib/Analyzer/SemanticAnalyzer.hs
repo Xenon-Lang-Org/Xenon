@@ -293,7 +293,11 @@ inferType ctx expr = case expr of
         else Left [UninitializedVariable name]
     Nothing -> Left [UndefinedVariable name]
       
-  ELiteral lit -> Right (literalType lit, [])
+  ELiteral lit -> case currentFunction ctx of
+    Just (_, expectedType) ->
+      Right (literalType expectedType lit, [])
+    Nothing ->
+      Right (literalType (PrimitiveType Immutable I32) lit, [])
       
   BinaryOp op e1 e2 -> case inferType ctx e1 of
     Right (t1, errs1) -> case inferType ctx e2 of
@@ -377,14 +381,26 @@ resultType op t1 t2 = error $ "Invalid operation " ++ show op ++ " between types
 unaryResultType :: UnaryOp -> Type -> Type
 unaryResultType Negate t | isLogicalType t = PrimitiveType Immutable I32
 unaryResultType Negative t | isNumericType t = t
-unaryResultType BitNot t | isIntegerType t = t
+unaryResultType BitNot (PrimitiveType mut I32) = PrimitiveType mut I32
+unaryResultType BitNot (PrimitiveType mut I64) = PrimitiveType mut I64
+unaryResultType BitNot (PrimitiveType mut t) 
+  | isIntegerType (PrimitiveType mut t) = PrimitiveType mut I32
 unaryResultType Dereference (PointerType _ t) = t
 unaryResultType AddressOf t = PointerType Immutable t
 unaryResultType _ t = t
 
-literalType :: Literal -> Type
-literalType (IntLiteral _) = PrimitiveType Immutable I32
-literalType (FloatLiteral _) = PrimitiveType Immutable F32
+literalType :: Type -> Literal -> Type
+literalType expectedType lit = case (expectedType, lit) of
+  (PrimitiveType mut I32, IntLiteral _) -> PrimitiveType mut I32
+  (PrimitiveType mut I64, IntLiteral _) -> PrimitiveType mut I64
+  (PrimitiveType mut U32, IntLiteral _) -> PrimitiveType mut U32
+  (PrimitiveType mut U64, IntLiteral _) -> PrimitiveType mut U64
+  (PrimitiveType mut F32, IntLiteral _) -> PrimitiveType mut F32
+  (PrimitiveType mut F64, IntLiteral _) -> PrimitiveType mut F64
+  (PrimitiveType mut F32, FloatLiteral _) -> PrimitiveType mut F32
+  (PrimitiveType mut F64, FloatLiteral _) -> PrimitiveType mut F64
+  (_, IntLiteral _) -> PrimitiveType Immutable I32
+  (_, FloatLiteral _) -> PrimitiveType Immutable F32
 
 isNumericType :: Type -> Bool
 isNumericType (PrimitiveType _ t) = case t of
@@ -424,4 +440,3 @@ analyzeTypeDecl ctx name typ = do
   validatedType <- validateType ctx typ
   let newTypes = Map.insert name validatedType (types ctx)
   Right (ctx { types = newTypes }, [])
-  

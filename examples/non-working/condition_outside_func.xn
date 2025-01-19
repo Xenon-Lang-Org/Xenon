@@ -1,0 +1,9 @@
+// PAS OK - if statement à la racine
+fn foo() -> i32
+{ 
+    return 1;
+}
+
+if (true) {
+    let x: i32 = 42;
+}
