@@ -1,10 +1,3 @@
-{-
--- EPITECH PROJECT, 2025
--- Xenon [WSL: Ubuntu]
--- File description:
--- SemanticAnalyzer
--}
-
 module Analyzer.SemanticAnalyzer
   ( analyze
   , AnalysisError(..)
@@ -14,256 +7,384 @@ module Analyzer.SemanticAnalyzer
 
 import qualified Data.Map as Map
 import Parser.Data.Ast
-import Analyzer.IR
+import Control.Monad (when)
 
 -------------------------------------------------------------------------------
--- | Analysis context tracks variables, types, and function definitions
---
+-- | Core Data Types
 -------------------------------------------------------------------------------
+
 data AnalysisContext = AnalysisContext 
-  { variables :: Map.Map VariableName (Type, Bool)  -- Type and initialization status
-  , customTypes :: Map.Map String Type              -- User types
-  , functions :: Map.Map FunctionName ([Field], Type) -- Function signatures
-  , inLoop :: Bool                                  -- Loop checker
+  { variables :: Map.Map String (Type, Bool, Bool)  -- (Type, isInitialized, isMutable)
+  , types :: Map.Map String Type                    -- User-defined types
+  , functions :: Map.Map String ([Field], Type)     -- Function signatures
+  , currentFunction :: Maybe (String, Type)         -- Current function being analyzed
+  , inLoop :: Bool                                  -- Loop context
+  , scopeLevel :: Int                               -- Scope nesting level
   } deriving (Show, Eq)
 
--------------------------------------------------------------------------------
--- | Possible analysis errors
--------------------------------------------------------------------------------
 data AnalysisError
   = UndefinedVariable String
-  | UndefinedType String
-  | UndefinedFunction String
+  | UndefinedType String 
   | TypeMismatch Type Type
   | MutabilityError String
-  | UninitializedVariable String
-  | InvalidReturnType Type Type
-  | MissingReturnStatement FunctionName
-  | InvalidArrayAccess
   | InvalidPointerOperation String
+  | InvalidReturnType Type Type
+  | MissingReturnStatement String
+  | DuplicateDefinition String
+  | UninitializedVariable String
+  | InvalidExpression String
   | CustomError String
   deriving (Show, Eq)
 
--------------------------------------------------------------------------------
--- | Result of semantic analysis and IR generation
--- |  The final AST to be used for
--------------------------------------------------------------------------------
 data AnalysisResult = AnalysisResult 
   { finalAst :: Program
-  , irCode :: IR
+  , symbolTable :: AnalysisContext
   } deriving (Show, Eq)
 
 -------------------------------------------------------------------------------
--- | Empty analysis context
+-- | Context Management
 -------------------------------------------------------------------------------
+
 emptyContext :: AnalysisContext
 emptyContext = AnalysisContext 
   { variables = Map.empty
-  , customTypes = Map.empty
+  , types = Map.empty
   , functions = Map.empty
+  , currentFunction = Nothing
   , inLoop = False
+  , scopeLevel = 0
   }
 
--------------------------------------------------------------------------------
--- | Main entry point for semantic analysis
--- | This function will analyze the program and return either the "finalAst"
--- | and IR code or a list of errors
--------------------------------------------------------------------------------
-analyze :: Program -> Either [AnalysisError] AnalysisResult
-analyze prog@(Program stmts) = do
-  (_, errors) <- analyzeStatements emptyContext stmts
-  if null errors
-    then do
-      let ir = optimizeIR $ astToIR prog
-      Right AnalysisResult 
-        { finalAst = prog
-        , irCode = ir
-        }
-    else Left errors
+enterScope :: AnalysisContext -> AnalysisContext
+enterScope ctx = ctx { scopeLevel = scopeLevel ctx + 1 }
+
+exitScope :: AnalysisContext -> AnalysisContext
+exitScope ctx = ctx { scopeLevel = scopeLevel ctx - 1 }
 
 -------------------------------------------------------------------------------
--- | Analyze a list of statements
+-- | Main Analysis Functions
 -------------------------------------------------------------------------------
+
+analyze :: Program -> Either [AnalysisError] AnalysisResult
+analyze prog@(Program stmts) = case analyzeStatements emptyContext stmts of
+  Right (newCtx, []) -> Right $ AnalysisResult prog newCtx
+  Right (_, errs) -> Left errs
+  Left errs -> Left errs
+
 analyzeStatements :: AnalysisContext -> [Statement] -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
 analyzeStatements ctx [] = Right (ctx, [])
-analyzeStatements ctx (stmt:stmts) = do
-  (newCtx, errs) <- analyzeStatement ctx stmt
-  (finalCtx, moreErrs) <- analyzeStatements newCtx stmts
-  Right (finalCtx, errs ++ moreErrs)
+analyzeStatements ctx (stmt:stmts) = case analyzeStatement ctx stmt of
+  Right (ctx1, errs1) -> case analyzeStatements ctx1 stmts of
+    Right (ctx2, errs2) -> Right (ctx2, errs1 ++ errs2)
+    Left errs -> Left errs
+  Left errs -> Left errs
 
--------------------------------------------------------------------------------
--- | Analyze a single statement
--------------------------------------------------------------------------------
 analyzeStatement :: AnalysisContext -> Statement -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
 analyzeStatement ctx stmt = case stmt of
   VariableDeclaration name typ initExpr -> analyzeVarDecl ctx name typ initExpr
   FunctionDeclaration name params retType body -> analyzeFuncDecl ctx name params retType body
   WhileLoop cond body -> analyzeWhile ctx cond body
   If cond thenBody elseBody -> analyzeIf ctx cond thenBody elseBody
-  TypeDeclaration name typ -> analyzeTypeDecl ctx name typ
   ReturnStatement expr -> analyzeReturn ctx expr
-  StandaloneFunctionCall name args -> analyzeFuncCall ctx name args
-  VariableReAssignment name expr -> analyzeVarReassign ctx name expr
+  VariableReAssignment name expr -> analyzeAssignment ctx name expr
+  TypeDeclaration name typ -> analyzeTypeDecl ctx name typ
+  StandaloneFunctionCall name args -> analyzeFunctionCall ctx name args
 
 -------------------------------------------------------------------------------
--- | Analyze variable declarations
+-- | Analysis Implementation
 -------------------------------------------------------------------------------
-analyzeVarDecl :: AnalysisContext -> VariableName -> Type -> Maybe Expression -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
-analyzeVarDecl ctx name typ initExpr = 
-  case Map.lookup name (variables ctx) of
-    Just _ -> Left [MutabilityError $ "Variable " ++ name ++ " already declared"]
-    Nothing -> case initExpr of
-      Just expr -> do
-        exprType <- analyzeExpr ctx expr
-        if typeMatches typ exprType
-          then Right (ctx { variables = Map.insert name (typ, True) (variables ctx) }, [])
-          else Left [TypeMismatch typ exprType]
-      Nothing -> Right (ctx { variables = Map.insert name (typ, False) (variables ctx) }, [])
+
+analyzeVarDecl :: AnalysisContext -> String -> Type -> Maybe Expression -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
+analyzeVarDecl ctx name typ initExpr = case validateType ctx typ of
+  Left err -> Left err
+  Right validatedType -> 
+    if Map.member name (variables ctx)
+      then Left [DuplicateDefinition $ "Variable " ++ name ++ " already declared"]
+      else let isMutable = case validatedType of
+                PrimitiveType Mutable _ -> True
+                PointerType Mutable _ -> True
+                _ -> False
+           in case initExpr of
+                Just expr -> case inferType ctx expr of
+                  Right (exprType, exprErrs) ->
+                    if typeMatches validatedType exprType
+                      then Right (ctx { variables = Map.insert name (validatedType, True, isMutable) (variables ctx) }, exprErrs)
+                      else Left [TypeMismatch validatedType exprType]
+                  Left err -> Left err
+                Nothing -> Right (ctx { variables = Map.insert name (validatedType, False, isMutable) (variables ctx) }, [])
+
+analyzeFuncDecl :: AnalysisContext -> String -> [Field] -> Type -> [Statement] 
+                -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
+analyzeFuncDecl ctx name params retType body =
+  if Map.member name (functions ctx)
+    then Left [DuplicateDefinition $ "Function " ++ name ++ " already declared"]
+    else case validateType ctx retType of
+      Left err -> Left err
+      Right validatedRetType -> case validateParams ctx params of
+        Left err -> Left err
+        Right validatedParams -> 
+          let funcCtx = ctx { 
+                currentFunction = Just (name, validatedRetType),
+                functions = Map.insert name (validatedParams, validatedRetType) (functions ctx), -- Ajout ici
+                variables = foldr (\(pName, pType) vars -> 
+                  let isMutable = case pType of
+                        PrimitiveType Mutable _ -> True
+                        PointerType Mutable _ -> True
+                        _ -> False
+                  in Map.insert pName (pType, True, isMutable) vars)
+                  (variables ctx) 
+                  validatedParams
+              }
+          in case analyzeStatements (enterScope funcCtx) body of
+            Right (_, bodyErrs) -> 
+              if validatedRetType /= PrimitiveType Immutable I32
+                then Right (ctx { functions = Map.insert name (validatedParams, validatedRetType) (functions ctx) }, bodyErrs)
+                else if not (hasReturnStatement body) 
+                       then Left [MissingReturnStatement name]
+                       else Right (ctx { functions = Map.insert name (validatedParams, validatedRetType) (functions ctx) }, bodyErrs)
+            Left err -> Left err
+
+validateParams :: AnalysisContext -> [Field] -> Either [AnalysisError] [Field]
+validateParams ctx = mapM validateField
+  where validateField (name, typ) = case validateType ctx typ of
+          Left err -> Left err
+          Right validType -> Right (name, validType)
 
 -------------------------------------------------------------------------------
--- | Analyze function declarations
+-- |check if a function has a return statement
+  -- If without else doesn't guarantee return
+  -- While loop doesn't guarantee return
 -------------------------------------------------------------------------------
-analyzeFuncDecl :: AnalysisContext -> FunctionName -> [Field] -> Type -> Body -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
-analyzeFuncDecl ctx name params retType body = do
-  let funcCtx = ctx { variables = foldr addParam (variables ctx) params, functions = Map.insert name (params, retType) (functions ctx) }
-  (innerCtx, bodyErrs) <- analyzeStatements funcCtx body
-  if hasValidReturn body retType
-    then Right (ctx { functions = functions innerCtx }, bodyErrs)
-    else Left [MissingReturnStatement name]
-  where
-    addParam (named, typ) = Map.insert named (typ, True)
+hasReturnStatement :: [Statement] -> Bool
+hasReturnStatement [] = False
+hasReturnStatement (ReturnStatement _:_) = True
+hasReturnStatement (If _ thenStmts (Just elseStmts):xs) = 
+    hasReturnStatement thenStmts && hasReturnStatement elseStmts || hasReturnStatement xs
+hasReturnStatement (If _ _ Nothing:xs) = hasReturnStatement xs
+hasReturnStatement (WhileLoop _ _:xs) = hasReturnStatement xs
+hasReturnStatement (_:rest) = hasReturnStatement rest
 
--------------------------------------------------------------------------------
--- | Analyze while loops
--------------------------------------------------------------------------------
-analyzeWhile :: AnalysisContext -> Expression -> Body -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
-analyzeWhile ctx cond body = do
-  condType <- analyzeExpr ctx cond
-  case condType of
-    PrimitiveType _ I32 -> do
-      let loopCtx = ctx { inLoop = True }
-      (_, bodyErrs) <- analyzeStatements loopCtx body
-      Right (ctx, bodyErrs)
-    _ -> Left [TypeMismatch (PrimitiveType Immutable I32) condType]
+analyzeWhile :: AnalysisContext -> Expression -> [Statement] 
+             -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
+analyzeWhile ctx cond body = case inferType ctx cond of
+  Right (condType, condErrs) ->
+    if not (isLogicalType condType)
+      then Left [TypeMismatch (PrimitiveType Immutable I32) condType]
+      else case analyzeStatements (enterScope ctx { inLoop = True }) body of
+        Right (_, bodyErrs) -> Right (exitScope ctx, condErrs ++ bodyErrs)
+        Left err -> Left err
+  Left err -> Left err
 
--------------------------------------------------------------------------------
--- | Analyze if statements
--------------------------------------------------------------------------------
-analyzeIf :: AnalysisContext -> Expression -> Body -> Maybe Body -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
-analyzeIf ctx cond thenBody elseBody = do
-  condType <- analyzeExpr ctx cond
-  case condType of
-    PrimitiveType _ I32 -> do
-      (_, thenErrs) <- analyzeStatements ctx thenBody
-      elseErrs <- case elseBody of
-        Just body -> do
-          (_, errs) <- analyzeStatements ctx body
-          return errs
-        Nothing -> return []
-      Right (ctx, thenErrs ++ elseErrs)
-    _ -> Left [TypeMismatch (PrimitiveType Immutable I32) condType]
+analyzeIf :: AnalysisContext -> Expression -> [Statement] -> Maybe [Statement]
+          -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
+analyzeIf ctx cond thenBody elseBody = case inferType ctx cond of
+  Right (condType, condErrs) ->
+    if not (isLogicalType condType)
+      then Left [TypeMismatch (PrimitiveType Immutable I32) condType]
+      else let thenCtx = enterScope ctx
+            in case analyzeStatements thenCtx thenBody of
+              Right (_, thenErrs) -> case analyzeElse ctx elseBody of
+                Right elseErrs -> Right (ctx, condErrs ++ thenErrs ++ elseErrs)
+                Left err -> Left err
+              Left err -> Left err
+  Left err -> Left err
 
--------------------------------------------------------------------------------
--- | Analyze type declarations
--------------------------------------------------------------------------------
-analyzeTypeDecl :: AnalysisContext -> String -> Type -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
-analyzeTypeDecl ctx name typ = 
-  case Map.lookup name (customTypes ctx) of
-    Just _ -> Left [CustomError $ "Type " ++ name ++ " already declared"]
-    Nothing -> Right (ctx { customTypes = Map.insert name typ (customTypes ctx) }, [])
+analyzeElse :: AnalysisContext -> Maybe [Statement] -> Either [AnalysisError] [AnalysisError]
+analyzeElse _ Nothing = Right []
+analyzeElse ctx (Just body) = case analyzeStatements (enterScope ctx) body of
+  Right (_, errs) -> Right errs
+  Left err -> Left err
 
--------------------------------------------------------------------------------
--- | Analyze return statements
--------------------------------------------------------------------------------
 analyzeReturn :: AnalysisContext -> Expression -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
-analyzeReturn ctx expr = do
-  _ <- analyzeExpr ctx expr
-  Right (ctx, [])
+analyzeReturn ctx expr = case currentFunction ctx of
+  Nothing -> Left [CustomError "Return statement outside function"]
+  Just (_, expectedType) -> case inferType ctx expr of
+    Right (actualType, errs) ->
+      if typeMatches expectedType actualType
+        then Right (ctx, errs)
+        else Left [InvalidReturnType expectedType actualType]
+    Left err -> Left err
 
--------------------------------------------------------------------------------
--- | Analyze function calls
--------------------------------------------------------------------------------
-analyzeFuncCall :: AnalysisContext -> FunctionName -> [Expression] -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
-analyzeFuncCall ctx name args = do
-  case Map.lookup name (functions ctx) of
-    Nothing -> Left [UndefinedFunction name]
-    Just (params, _) -> do
-      if length params /= length args
-        then Left [CustomError $ "Wrong number of arguments for function " ++ name]
-        else do
-          argTypes <- mapM (analyzeExpr ctx) args
-          let paramTypes = map snd params
-          if all (uncurry typeMatches) (zip paramTypes argTypes)
-            then Right (ctx, [])
-            else Left [TypeMismatch (head paramTypes) (head argTypes)]
-
--------------------------------------------------------------------------------
--- | Analyze variable reassignment
--- Checks if the variable is defined and if the new value has the same type
--------------------------------------------------------------------------------
-analyzeVarReassign :: AnalysisContext -> VariableName -> Expression -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
-analyzeVarReassign ctx name expr =
+analyzeAssignment :: AnalysisContext -> String -> Expression -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
+analyzeAssignment ctx name expr = 
   case Map.lookup name (variables ctx) of
+    Just (varType, _, isMut) -> checkAndAssign ctx name varType isMut expr
     Nothing -> Left [UndefinedVariable name]
-    Just (typ, _) -> do
-      exprType <- analyzeExpr ctx expr
-      if typeMatches typ exprType
-        then Right (ctx, [])
-        else Left [TypeMismatch typ exprType]
+  where
+    checkAndAssign ctx' name' varType isMut expr' = 
+      case varType of
+        PrimitiveType Immutable _ -> Left [MutabilityError $ name' ++ " is immutable (missing 'mut' qualifier)"]
+        PointerType Immutable _ -> Left [MutabilityError $ name' ++ " is immutable (missing 'mut' qualifier)"]
+        _ | not isMut -> Left [MutabilityError $ name' ++ " was not declared as mutable"]
+        _ -> case inferType ctx' expr' of
+              Right (exprType, exprErrs) ->
+                if typeMatches varType exprType
+                  then Right (ctx' { variables = Map.insert name' (varType, True, isMut) (variables ctx') }, exprErrs)
+                  else Left [TypeMismatch varType exprType]
+              Left err -> Left err
 
--------------------------------------------------------------------------------
--- | Analyze expressions
--------------------------------------------------------------------------------
-analyzeExpr :: AnalysisContext -> Expression -> Either [AnalysisError] Type
-analyzeExpr ctx expr = case expr of
+analyzeFunctionCall :: AnalysisContext -> String -> [Expression] -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
+analyzeFunctionCall ctx name args = case Map.lookup name (functions ctx) of
+  Nothing -> Left [UndefinedVariable $ "Function " ++ name ++ " not found"]
+  Just (params, _) ->
+    if length args /= length params
+      then Left [CustomError $ "Function " ++ name ++ 
+                " expects " ++ show (length params) ++ 
+                " arguments but got " ++ show (length args)]
+      else case validateArgs ctx args params of
+        Right errs -> Right (ctx, concat errs)
+        Left err -> Left err
+
+validateArgs :: AnalysisContext -> [Expression] -> [Field] -> Either [AnalysisError] [[AnalysisError]]
+validateArgs ctx args params = mapM validateArg (zip args params)
+  where validateArg (arg, (_, expectedType)) = case inferType ctx arg of
+          Right (actualType, errs) ->
+            if typeMatches expectedType actualType
+              then Right errs
+              else Left [TypeMismatch expectedType actualType]
+          Left err -> Left err
+
+inferType :: AnalysisContext -> Expression -> Either [AnalysisError] (Type, [AnalysisError])
+inferType ctx expr = case expr of
   Variable name -> case Map.lookup name (variables ctx) of
-    Just (typ, initialized) -> 
-      if initialized
-        then Right typ
+    Just (typ, isInit, _) ->
+      if isInit
+        then Right (typ, [])
         else Left [UninitializedVariable name]
     Nothing -> Left [UndefinedVariable name]
-  
-  ELiteral (IntLiteral _) -> Right (PrimitiveType Immutable I32)
-  ELiteral (FloatLiteral _) -> Right (PrimitiveType Immutable F32)
-  
-  BinaryOp _ e1 e2 -> do
-    t1 <- analyzeExpr ctx e1
-    t2 <- analyzeExpr ctx e2
-    if typeMatches t1 t2
-      then Right t1
-      else Left [TypeMismatch t1 t2]
-  
-  UnaryOp _ e -> analyzeExpr ctx e
-  
-  Parenthesis e -> analyzeExpr ctx e
-  
+      
+  ELiteral lit -> Right (literalType lit, [])
+      
+  BinaryOp op e1 e2 -> case inferType ctx e1 of
+    Right (t1, errs1) -> case inferType ctx e2 of
+      Right (t2, errs2) ->
+        if compatibleTypes t1 t2
+          then Right (resultType op t1 t2, errs1 ++ errs2)
+          else Left [TypeMismatch t1 t2]
+      Left err -> Left err
+    Left err -> Left err
+      
+  UnaryOp op e -> case inferType ctx e of
+    Right (t, errs) -> Right (unaryResultType op t, errs)
+    Left err -> Left err
+    
   FunctionCall name args -> case Map.lookup name (functions ctx) of
-    Nothing -> Left [UndefinedFunction name]
-    Just (params, retType) -> do
-      argTypes <- mapM (analyzeExpr ctx) args
-      let paramTypes = map snd params
+    Just (params, retType) ->
       if length args /= length params
-        then Left [CustomError $ "Wrong number of arguments for function " ++ name]
-        else if all (uncurry typeMatches) (zip paramTypes argTypes)
-          then Right retType
-          else Left [TypeMismatch (head paramTypes) (head argTypes)]
+        then Left [CustomError $ "Wrong number of arguments for " ++ name]
+        else case validateArgs ctx args params of
+          Right errs -> Right (retType, concat errs)
+          Left err -> Left err
+    Nothing -> Left [UndefinedVariable $ "Function " ++ name]
+      
+  Parenthesis e -> inferType ctx e
 
 -------------------------------------------------------------------------------
--- | Helper function to check if types match
+-- | Type System Functions
 -------------------------------------------------------------------------------
+
+validateType :: AnalysisContext -> Type -> Either [AnalysisError] Type
+validateType ctx typ = case typ of
+  PointerType mut innerType -> case validateType ctx innerType of
+    Right validatedInner -> Right $ PointerType mut validatedInner
+    Left err -> Left err
+    
+  CustomType _ name -> case Map.lookup name (types ctx) of
+    Just definedType -> Right definedType
+    Nothing -> Left [UndefinedType name]
+      
+  _ -> Right typ  -- Primitive types are always valid
+
 typeMatches :: Type -> Type -> Bool
 typeMatches (PrimitiveType _ t1) (PrimitiveType _ t2) = t1 == t2
 typeMatches (PointerType _ t1) (PointerType _ t2) = typeMatches t1 t2
-typeMatches (StructType _ s1) (StructType _ s2) = s1 == s2
-typeMatches (ArrayType _ a1) (ArrayType _ a2) = a1 == a2
-typeMatches (EnumType _ e1) (EnumType _ e2) = e1 == e2
 typeMatches (CustomType _ n1) (CustomType _ n2) = n1 == n2
 typeMatches _ _ = False
 
+compatibleTypes :: Type -> Type -> Bool
+compatibleTypes = typeMatches
+
+-- isImplicitlyConvertible :: Type -> Type -> Bool
+-- isImplicitlyConvertible (PrimitiveType _ I32) (PrimitiveType _ I64) = True
+-- isImplicitlyConvertible (PrimitiveType _ I32) (PrimitiveType _ F32) = True
+-- isImplicitlyConvertible (PrimitiveType _ I64) (PrimitiveType _ F64) = True
+-- isImplicitlyConvertible _ _ = False
+
 -------------------------------------------------------------------------------
--- | Helper to check if a function body has a valid return statement
+-- | Helper Functions
 -------------------------------------------------------------------------------
-hasValidReturn :: Body -> Type -> Bool
-hasValidReturn [] _ = False
-hasValidReturn (ReturnStatement _:_) _ = True
-hasValidReturn (_:rest) retType = hasValidReturn rest retType
+
+resultType :: BinOp -> Type -> Type -> Type
+resultType Add t1 t2 | typeMatches t1 t2 && isNumericType t1 = t1
+resultType Sub t1 t2 | typeMatches t1 t2 && isNumericType t1 = t1
+resultType Mul t1 t2 | typeMatches t1 t2 && isNumericType t1 = t1
+resultType Div t1 t2 | typeMatches t1 t2 && isNumericType t1 = t1
+resultType Mod t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+resultType BitAnd t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+resultType BitOr t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+resultType BitXor t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+resultType Shl t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+resultType Shr t1 t2 | typeMatches t1 t2 && isIntegerType t1 = t1
+-- Comparison operators still return i32
+resultType Eq t1 t2 | typeMatches t1 t2 = PrimitiveType Immutable I32
+resultType Neq t1 t2 | typeMatches t1 t2 = PrimitiveType Immutable I32
+resultType Lt t1 t2 | typeMatches t1 t2 && isNumericType t1 = PrimitiveType Immutable I32
+resultType Gt t1 t2 | typeMatches t1 t2 && isNumericType t1 = PrimitiveType Immutable I32
+resultType Le t1 t2 | typeMatches t1 t2 && isNumericType t1 = PrimitiveType Immutable I32
+resultType Ge t1 t2 | typeMatches t1 t2 && isNumericType t1 = PrimitiveType Immutable I32
+resultType And t1 t2 | isLogicalType t1 && isLogicalType t2 = PrimitiveType Immutable I32
+resultType Or t1 t2 | isLogicalType t1 && isLogicalType t2 = PrimitiveType Immutable I32
+resultType _ _ _ = PrimitiveType Immutable I32  -- Default case
+
+unaryResultType :: UnaryOp -> Type -> Type
+unaryResultType Negate t | isLogicalType t = PrimitiveType Immutable I32
+unaryResultType Negative t | isNumericType t = t
+unaryResultType BitNot t | isIntegerType t = t
+unaryResultType Dereference (PointerType _ t) = t
+unaryResultType AddressOf t = PointerType Immutable t
+unaryResultType _ t = t
+
+literalType :: Literal -> Type
+literalType (IntLiteral _) = PrimitiveType Immutable I32
+literalType (FloatLiteral _) = PrimitiveType Immutable F32
+
+isNumericType :: Type -> Bool
+isNumericType (PrimitiveType _ t) = case t of
+  I8  -> True
+  I16 -> True
+  I32 -> True
+  I64 -> True
+  U8  -> True
+  U16 -> True
+  U32 -> True
+  U64 -> True
+  F32 -> True
+  F64 -> True
+isNumericType _ = False
+
+isIntegerType :: Type -> Bool
+isIntegerType (PrimitiveType _ t) = case t of
+  I8  -> True
+  I16 -> True
+  I32 -> True
+  I64 -> True
+  U8  -> True
+  U16 -> True
+  U32 -> True
+  U64 -> True
+  _ -> False
+isIntegerType _ = False
+
+isLogicalType :: Type -> Bool
+isLogicalType (PrimitiveType _ I32) = True
+isLogicalType _ = False
+
+analyzeTypeDecl :: AnalysisContext -> String -> Type -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
+analyzeTypeDecl ctx name typ = do
+  when (Map.member name (types ctx)) $
+    Left [DuplicateDefinition $ "Type " ++ name ++ " already defined"]
+    
+  validatedType <- validateType ctx typ
+  let newTypes = Map.insert name validatedType (types ctx)
+  Right (ctx { types = newTypes }, [])
+  

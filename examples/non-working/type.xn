@@ -1,0 +1,2 @@
+//! Should error: wrong type
+let wrong_type: i32 = 42.3;

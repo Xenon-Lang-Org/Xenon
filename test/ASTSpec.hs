@@ -3,7 +3,6 @@ module ASTSpec (main, spec) where
 import Test.Hspec
 import Test.QuickCheck()
 import Analyzer.SemanticAnalyzer
-import Analyzer.IR()
 import Parser.Data.Ast
 
 main :: IO ()

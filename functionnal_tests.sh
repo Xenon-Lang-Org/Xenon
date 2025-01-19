@@ -40,15 +40,72 @@ test_cases=(
   "bitwise"             "10 4"            "bitwise"       "28"
   "sum_digits"          "123"             "sum_digits"    "6"
   "sum_digits"          "1018"            "sum_digits"    "10"
+  "conditional"        "10"              "test_if"       "1"
+  "conditional"        "-10"             "test_if"       "11"
+  "count_to"            "10"              "count_to"      "10"
 )
+
+non_working_test_cases=(
+  "duplication"
+  "loop_return"
+  "no_return"
+  "partial_return"
+  "type"
+  "variable_immut"
+  "variable_uninit"
+)
+
+echo ""
+echo -e "\e[34m---------------------------------\e[0m"
+echo -e "\e[34m--- \e[0mRUNNING FUNCTIONNAL TESTS\e[34m ---\e[0m"
+echo -e "\e[34m---------------------------------\e[0m"
+echo ""
+echo -e "\e[34mCompiling non-working .xn files\e[0m"
+echo ""
+
+returned=0
+
+# Compile non working (return should not be 0, should not compile)
+for ((i=0; i<${#non_working_test_cases[@]}; i++)); do
+  xn_file="examples/non-working/${non_working_test_cases[i]}.xn"
+  wasm_file="examples/non-working/${non_working_test_cases[i]}.wasm"
+  set +e
+  output=$(./xcc "$xn_file" -o "$wasm_file" 2>&1)
+  exit_code=$?
+  set -e
+  if [ $exit_code -eq 0 ]; then
+    echo -e "\e[31m$xn_file should not compile\e[0m"
+    rm "$wasm_file"
+    returned=1
+  else
+    echo -e "\e[32m$xn_file does not compile\e[0m"
+  fi
+done
+
+echo ""
+echo -e "\e[34mCompiling working .xn files\e[0m"
+echo ""
 
 # Compile all
 for ((i=0; i<${#test_cases[@]}; i+=4)); do
   xn_file="examples/${test_cases[i]}.xn"
   wasm_file="examples/${test_cases[i]}.wasm"
-  ./xcc "$xn_file" -o "$wasm_file" \
-    || { echo -e "\e[31mFailed to compile $xn_file\e[0m"; exit 1; }
+  set +e
+  output=$(./xcc "$xn_file" -o "$wasm_file" 2>&1)
+  exit_code=$?
+  set -e
+  if [ $exit_code -eq 0 ]; then
+    echo -e "\e[32m$xn_file compiled\e[0m"
+  else
+    echo -e "\e[31mFailed to compile $xn_file\e[0m"
+    echo "$output"
+    returned=1
+  fi
 done
+
+echo ""
+echo -e "\e[34mRunning tests\e[0m"
+echo ""
 
 # Run and check results
 for ((i=0; i<${#test_cases[@]}; i+=4)); do
@@ -58,7 +115,16 @@ for ((i=0; i<${#test_cases[@]}; i+=4)); do
   expected="${test_cases[i+3]}"
   wasm_file="examples/${test_cases[i]}.wasm"
 
-  wasmer_output=$(wasmer run "$wasm_file" --invoke "$function" $args 2>&1 || echo "error")
+  # If no wasm file, skip
+  if [ ! -f "$wasm_file" ]; then
+    echo -e "\e[33mSkipping $xn_file::$function (no wasm file)\e[0m"
+    continue
+  fi
+
+  # for wasmer args, we change all occurences of "-" to "-- -" (i.e. -1 becomes -- -1)
+  wasmer_args=$(echo "$args" | sed 's/-/-- -/g')
+
+  wasmer_output=$(wasmer run "$wasm_file" --invoke "$function" $wasmer_args 2>&1 || echo "error")
   wasm_vm_output=$(./xrun "$wasm_file" --invoke "$function" $args 2>&1 || echo "error")
   wasm_vm_last_line=$(echo "$wasm_vm_output" | tail -n1)
 
@@ -76,8 +142,22 @@ for ((i=0; i<${#test_cases[@]}; i+=4)); do
     echo "Wasmer Output: $wasmer_output"
     echo "vm Output: $wasm_vm_output"
     echo "xin Output: $xin_last_line"
+    returned=1
   fi
 done
 
 # Clean up
 rm examples/*.wasm
+
+# Return
+if [ $returned -eq 0 ]; then
+  echo ""
+  echo -e "\e[32mAll tests passed\e[0m"
+  echo ""
+  exit 0
+else
+  echo ""
+  echo -e "\e[31mSome tests failed\e[0m"
+  echo ""
+  exit 1
+fi
