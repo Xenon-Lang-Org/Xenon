@@ -129,6 +129,20 @@ for ((i=0; i<${#test_files[@]}; i++)); do
   rm -f "$wasm_file"
 done
 
+echo ""
+echo -e "\e[34mChecking for untested files\e[0m"
+echo ""
+
+for file in $(find "$folder" -type f -name "*.xn"); do
+  # check if the file is in the test_files array
+  if [[ ! " ${test_files[@]} " =~ " ${file#$folder/} " ]]; then
+    # check if the file is in the non-working folder
+    if [[ ! " ${non_working_test_cases[@]} " =~ " ${file} " ]]; then
+      echo -e "\e[33mWarning: $file is not tested\e[0m"
+    fi
+  fi
+done
+
 # Return
 if [ $returned -eq 0 ]; then
   echo ""
