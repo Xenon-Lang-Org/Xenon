@@ -140,6 +140,43 @@ spec = do
             Token (pos 1 47) TCloseBrace,
             Token (pos 1 48) TEOF
           ]
+    
+    it "should lex any expression" $ do
+      runLexer "let x: i32 = 42; let y: i32 = 10; x = y;"
+        `shouldBe` Right
+          [ Token (pos 1 1) TLet,
+            Token (pos 1 5) (TIdent "x"),
+            Token (pos 1 6) TColon,
+            Token (pos 1 8) (TIdent "i32"),
+            Token (pos 1 12) TEqSign,
+            Token (pos 1 14) (TIntLit 42),
+            Token (pos 1 16) TSemicolon,
+            Token (pos 1 18) TLet,
+            Token (pos 1 22) (TIdent "y"),
+            Token (pos 1 23) TColon,
+            Token (pos 1 25) (TIdent "i32"),
+            Token (pos 1 29) TEqSign,
+            Token (pos 1 31) (TIntLit 10),
+            Token (pos 1 33) TSemicolon,
+            Token (pos 1 35) (TIdent "x"),
+            Token (pos 1 37) TEqSign,
+            Token (pos 1 39) (TIdent "y"),
+            Token (pos 1 40) TSemicolon,
+            Token (pos 1 41) TEOF
+          ]
+
+      runLexer "x = 2 << i >> 1;"
+        `shouldBe` Right
+          [ Token (pos 1 1) (TIdent "x"),
+            Token (pos 1 3) TEqSign,
+            Token (pos 1 5) (TIntLit 2),
+            Token (pos 1 7) TLShift,
+            Token (pos 1 10) (TIdent "i"),
+            Token (pos 1 12) TRShift,
+            Token (pos 1 15) (TIntLit 1),
+            Token (pos 1 16) TSemicolon,
+            Token (pos 1 17) TEOF
+          ]
 
     it "should handle invalid input gracefully" $ do
       case runLexer "#" of

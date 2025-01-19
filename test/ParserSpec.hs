@@ -73,6 +73,13 @@ spec = do
       let input4 = "let x: i32 = (5 - 2) * 3;"
       runParserTest input4 `shouldSatisfy` isRight
 
+    it "parses all binary operations" $ do
+      let input = "let x: i32 = 5 + 3 - 2 * 4 / 2 % 3;"
+      runParserTest input `shouldSatisfy` isRight
+
+      let input2 = "let x: i32 = 5 << 2 & ~2 ^ 4 | 2 >> 3;"
+      runParserTest input2 `shouldSatisfy` isRight
+
     it "parses complex operations using negative literals correctly" $ do
       let input = "let x: i32 = 5 + -3 * 2;"
       runParserTest input
