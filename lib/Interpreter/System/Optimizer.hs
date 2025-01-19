@@ -87,6 +87,8 @@ optimizeExpr e (BinaryOp op l r) = case mapBoth (optimizeExpr e) (l, r) of
             Err m -> Err m
             Ok ex -> Ok (ex, True)
         else Ok (BinaryOp op l' r', lo || ro)
+optimizeExpr _ (UnaryOp BitNot ex) =
+    Ok (BinaryOp BitXor (ELiteral $ IntLiteral (-1)) ex , True)
 optimizeExpr e (UnaryOp op ex) = case optimizeExpr e ex of
     Err m -> Err m
     Ok (ex', oex) -> if isStatic ex'
