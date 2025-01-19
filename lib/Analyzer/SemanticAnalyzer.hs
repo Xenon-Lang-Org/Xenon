@@ -414,8 +414,7 @@ isIntegerType (PrimitiveType _ t) = case t of
 isIntegerType _ = False
 
 isLogicalType :: Type -> Bool
-isLogicalType (PrimitiveType _ I32) = True
-isLogicalType _ = False
+isLogicalType t = isIntegerType t
 
 analyzeTypeDecl :: AnalysisContext -> String -> Type -> Either [AnalysisError] (AnalysisContext, [AnalysisError])
 analyzeTypeDecl ctx name typ = do
