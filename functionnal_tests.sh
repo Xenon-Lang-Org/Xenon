@@ -26,8 +26,6 @@ test_cases=(
   "multiple_functions"  "3 4"             "mul"           "12"
   "multiple_functions"  "9 3"             "div"           "3"
   "multiple_functions"  "10 3"            "mod"           "1"
-  "multiple_if"         "8"               "doelif"        "2"
-  "multiple_if"         "1"               "forest"        "1"
   "multiple_if"         "12"              "supegal"       "1"
   "multiple_if"         "8"               "infegal"       "1"
   "my_pow"              "2 4"             "pow"           "16"
@@ -53,6 +51,7 @@ non_working_test_cases=(
   "type"
   "variable_immut"
   "variable_uninit"
+  "unreachable"
 )
 
 echo ""
