@@ -98,7 +98,7 @@ unrollingStep e n (VariableReAssignment vn v:xs) | n == vn = if isStaticOrVar n 
         e'' <- assignVar e' n v'
         unrollingStep e'' n xs
     else Err "Reassignment is not static"
-unrollingStep _ n (FunctionDeclaration {}:_) =
+unrollingStep _ _ (FunctionDeclaration {}:_) =
     Err "Loop unrolling with nested function declaration is not supported"
 unrollingStep e n (WhileLoop _ b:xs) = if modifiesVariable n b
     then Err "Cannot unroll loop"
@@ -127,7 +127,7 @@ getUsedVariables v (ELiteral {}) = v
 getUsedVariables v (BinaryOp _ l r) = getUsedVariables (getUsedVariables v l) r 
 getUsedVariables v (UnaryOp _ ex) = getUsedVariables v ex
 getUsedVariables v (Parenthesis ex) = getUsedVariables v ex
-getUsedVariables v (FunctionCall {}) = []
+getUsedVariables _ (FunctionCall {}) = []
 
 getUnrollVarName :: Env -> Expression -> Result String String
 getUnrollVarName e cond = case getUsedVariables [] cond of

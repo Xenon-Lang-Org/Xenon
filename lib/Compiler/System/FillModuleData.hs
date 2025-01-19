@@ -5,7 +5,6 @@ module Compiler.System.FillModuleData (fillWASMModuleFromAST) where
 import Parser.Data.Ast
 import Compiler.Data.ModuleData
 import Data.Maybe (fromMaybe)
-import VM.Data.AST (ValType)
 
 import Control.Applicative ((<|>))
 
@@ -145,12 +144,12 @@ toInstruction _ _ _ _ (TypeDeclaration _ _) =
   []
 
 -- StandaloneFunctionCall
-toInstruction mT locMap gMap funcMap (StandaloneFunctionCall funcName args) =
+toInstruction _ locMap gMap funcMap (StandaloneFunctionCall funcName args) =
     concatMap (toInstructionFromExpr Nothing locMap gMap funcMap) args
     ++ [ModuleCall (lookupFunc funcMap funcName)]
 
 -- VariableReAssignment
-toInstruction mT locMap gMap funcMap (VariableReAssignment name expr) =
+toInstruction _ locMap gMap funcMap (VariableReAssignment name expr) =
   case lookupVar locMap name of
     Just (vt, localIdx) -> toInstructionFromExpr (Just vt) locMap gMap funcMap expr ++ [ModuleLocalSet localIdx]
     Nothing ->
@@ -159,7 +158,7 @@ toInstruction mT locMap gMap funcMap (VariableReAssignment name expr) =
         Nothing -> error $ "Unknown variable for assignment: " ++ name
 
 -- VariableDeclaration in top-level statements
-toInstruction mT locMap gMap funcMap (VariableDeclaration name _ maybeExpr) =
+toInstruction _ locMap gMap funcMap (VariableDeclaration name _ maybeExpr) =
   case lookupVar locMap name of
     Just (vt, localIdx) ->
       let initInstrs = maybe [] (toInstructionFromExpr (Just vt) locMap gMap funcMap) maybeExpr
