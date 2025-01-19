@@ -27,7 +27,7 @@ jobs:
         run: |
           mkdir -p release/
           cp $(stack path --local-install-root)/bin/compiler release/
-          cp $(stack path --local-install-root)/bim/vm release/
+          cp $(stack path --local-install-root)/bin/vm release/
           cp $(stack path --local-install-root)/bin/interpreter release/
           tar czf xenon-${{ github.ref_name }}.tar.gz release/
 
