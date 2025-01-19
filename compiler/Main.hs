@@ -5,21 +5,41 @@ import Compiler.System.WriteWAT
 import Utils.Data.Result
 import System.Environment (getArgs)
 import Analyzer.SemanticAnalyzer
+import System.Exit (exitWith, ExitCode (ExitFailure))
+import Parser.Data.Ast
+import Interpreter.System.Optimizer
+
+compilerParse :: String -> IO Program
+compilerParse filename = do
+    parseResult <- parseFileAndPrintErrors filename
+    case parseResult of
+        Ok p -> return p
+        Err errs -> do
+            print errs
+            exitWith $ ExitFailure 84
+
+compilerOptimize :: Program -> IO Program
+compilerOptimize p = case optimizeProg p of
+    Ok p' -> return p'
+    Err m -> do
+        putStrLn m
+        exitWith $ ExitFailure 84
+
+compilerAnalyse :: Program -> IO Program
+compilerAnalyse p = case analyze p of
+    Right p' -> return $ finalAst p'
+    Left errs -> do
+        print errs
+        exitWith $ ExitFailure 84
 
 compile :: String -> String -> IO ()
 compile filename output = do
-    parseResult <- parseFileAndPrintErrors filename
-    case parseResult of
-        Ok ast -> do
-            case analyze ast of
-                Right result -> do
-                    let filledModule = fillWASMModuleFromAST (finalAst result)
-                    printModule filledModule
-                    writeWasmModule output filledModule
-                Left analyzeErr -> error $ show analyzeErr
-        Err err -> error $ show err
-            
-            
+    prog <- compilerParse filename
+    analyzedProg <- compilerAnalyse prog
+    optimizedProg <- compilerOptimize analyzedProg
+    let filledModule = fillWASMModuleFromAST optimizedProg
+    printModule filledModule
+    writeWasmModule output filledModule
 
 checkFileName :: String -> Bool
 checkFileName filename = (length filename) > 3 && (drop (length filename - 3) filename) == ".xn"

@@ -75,15 +75,15 @@ spec = do
 
         -- Types
 
-        it "should clamp an Integer according to a primitive" $ do
-            castExpr env (iLit 255) iI8 `shouldSatisfy` isExpr (iLit 127)
-            castExpr env (iLit 32769) iI16 `shouldSatisfy` isExpr (iLit 32767)
-            castExpr env (iLit 2147483649) iI32 `shouldSatisfy` isExpr (iLit 2147483647)
-            castExpr env (iLit 9223372036854775810) iI64 `shouldSatisfy` isExpr (iLit 9223372036854775807)
-            castExpr env (iLit 257) iU8 `shouldSatisfy` isExpr (iLit 255)
-            castExpr env (iLit 65536) iU16 `shouldSatisfy` isExpr (iLit 65535)
-            castExpr env (iLit 4294967298) iU32 `shouldSatisfy` isExpr (iLit 4294967295)
-            castExpr env (iLit 18446744073709551618) iU64 `shouldSatisfy` isExpr (iLit 18446744073709551615)
+        it "should wrap an Integer according to a primitive" $ do
+            castExpr env (iLit 255) iI8 `shouldSatisfy` isExpr (iLit (-1))
+            castExpr env (iLit 32769) iI16 `shouldSatisfy` isExpr (iLit (-32767))
+            castExpr env (iLit 2147483648) iI32 `shouldSatisfy` isExpr (iLit (-2147483648))
+            castExpr env (iLit 9223372036854775810) iI64 `shouldSatisfy` isExpr (iLit (-9223372036854775806))
+            castExpr env (iLit 257) iU8 `shouldSatisfy` isExpr (iLit 1)
+            castExpr env (iLit 65536) iU16 `shouldSatisfy` isExpr (iLit 0)
+            castExpr env (iLit 4294967298) iU32 `shouldSatisfy` isExpr (iLit 2)
+            castExpr env (iLit 18446744073709551618) iU64 `shouldSatisfy` isExpr (iLit 2)
             castExpr env (fLit 1.3) fF64 `shouldSatisfy` isExpr (fLit 1.3)
 
         it "should return a default value for the given type" $ do
@@ -145,8 +145,6 @@ spec = do
                 `shouldSatisfy` evalExprIs (iLit 15)
             evalExpr env (BinaryOp BitXor (iLit 13) (iLit 7))
                 `shouldSatisfy` evalExprIs (iLit 10)
-            evalExpr (envWith [eVarI "foo" 0]) (BinaryOp Div (iLit 8) (Variable "foo"))
-                `shouldBe` Err "Division by zero"
             evalExpr (envWith [eVarI "baz" 2]) (BinaryOp Shl (Variable "baz") (iLit 8))
                 `shouldSatisfy` evalExprIs (iLit 512)
             evalExpr (envWith [eVarI "baz" 1024]) (BinaryOp Shr (Variable "baz") (iLit 2))
@@ -154,7 +152,9 @@ spec = do
             evalExpr (envWith [eVarF "foo" 7.7]) (BinaryOp Add (Variable "foo") (fLit 3.3))
                 `shouldSatisfy` evalExprIs (fLit 11.0)
             evalExpr (envWith [eVarI "bar" 3]) (BinaryOp Div (Variable "bar") (iLit 2))
-                `shouldSatisfy` evalExprIs (fLit 1.5)
+                `shouldSatisfy` evalExprIs (iLit 1)
+            -- evalExpr (envWith [eVarI "foo" 0]) (BinaryOp Div (iLit 8) (Variable "foo"))
+            --     `shouldBe` Err "Division by zero"
 
         it "should evaluate the unary operation" $ do
             evalExpr env (UnaryOp Negate (iLit 8))

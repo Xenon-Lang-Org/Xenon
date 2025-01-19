@@ -2,7 +2,8 @@ module Interpreter.System.Types
     (
         castExpr,
         toBool,
-        defaultExpr
+        defaultExpr,
+        isMutable
     )
 where
 
@@ -59,3 +60,12 @@ deduceType _ t = Ok t
 
 defaultExpr :: Env -> Type -> Result String Expression
 defaultExpr e = castExpr e (ELiteral $ IntLiteral 0)
+
+isMutable :: Type -> Bool
+isMutable (PrimitiveType Mutable _) = True
+isMutable (PointerType Mutable _) = True
+isMutable (StructType Mutable _) = True
+isMutable (ArrayType Mutable _) = True
+isMutable (EnumType Mutable _) = True
+isMutable (CustomType Mutable _) = True
+isMutable _ = False
