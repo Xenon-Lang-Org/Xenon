@@ -149,31 +149,40 @@ analyzeFuncDecl :: AnalysisContext -> String -> [Field] -> Type -> [Statement]
 analyzeFuncDecl ctx name params retType body =
   if Map.member name (functions ctx)
     then Left [DuplicateDefinition $ "Function " ++ name ++ " already declared"]
-    else case validateType ctx retType of
+    else case checkNameConflict ctx params of
       Left err -> Left err
-      Right validatedRetType -> case validateParams ctx params of
+      Right () -> case validateType ctx retType of
         Left err -> Left err
-        Right validatedParams -> 
-          let funcCtx = ctx { 
-                currentFunction = Just (name, validatedRetType),
-                functions = Map.insert name (validatedParams, validatedRetType) (functions ctx),
-                variables = foldr (\(pName, pType) vars -> 
-                  let isMutable = case pType of
-                        PrimitiveType Mutable _ -> True
-                        PointerType Mutable _ -> True
-                        _ -> False
-                  in Map.insert pName (pType, True, isMutable) vars)
-                  (variables ctx) 
-                  validatedParams
-              }
-          in case analyzeStatements (enterScope funcCtx) body of
-            Right (_, _, bodyErrs) -> 
-              if validatedRetType /= PrimitiveType Immutable I32
-                then Right (ctx { functions = Map.insert name (validatedParams, validatedRetType) (functions ctx) }, bodyErrs)
-                else case hasReturnStatement body of
-                       BlockTerminated -> Right (ctx { functions = Map.insert name (validatedParams, validatedRetType) (functions ctx) }, bodyErrs)
-                       BlockOpen -> Left [MissingReturnStatement name]
-            Left err -> Left err
+        Right validatedRetType -> case validateParams ctx params of
+          Left err -> Left err
+          Right validatedParams -> 
+            let funcCtx = ctx { 
+                  currentFunction = Just (name, validatedRetType),
+                  functions = Map.insert name (validatedParams, validatedRetType) (functions ctx),
+                  variables = foldr (\(pName, pType) vars -> 
+                    let isMutable = case pType of
+                          PrimitiveType Mutable _ -> True
+                          PointerType Mutable _ -> True
+                          _ -> False
+                    in Map.insert pName (pType, True, isMutable) vars)
+                    (variables ctx) 
+                    validatedParams
+                }
+            in case analyzeStatements (enterScope funcCtx) body of
+              Right (_, _, bodyErrs) -> 
+                if validatedRetType /= PrimitiveType Immutable I32
+                  then Right (ctx { functions = Map.insert name (validatedParams, validatedRetType) (functions ctx) }, bodyErrs)
+                  else case hasReturnStatement body of
+                         BlockTerminated -> Right (ctx { functions = Map.insert name (validatedParams, validatedRetType) (functions ctx) }, bodyErrs)
+                         BlockOpen -> Left [MissingReturnStatement name]
+              Left err -> Left err
+
+checkNameConflict :: AnalysisContext -> [Field] -> Either [AnalysisError] ()
+checkNameConflict ctx params = case findConflictingNames ctx params of
+  [] -> Right ()
+  conflicts -> Left [DuplicateDefinition $ "Parameter name conflicts with global variable: " ++ show conflicts]
+  where
+    findConflictingNames context = filter (\(name, _) -> Map.member name (variables context))
 
 validateParams :: AnalysisContext -> [Field] -> Either [AnalysisError] [Field]
 validateParams ctx = mapM validateField
