@@ -332,6 +332,52 @@ spec = do
                     , ReturnStatement (FunctionCall "foo" [Variable "bar", iLit 32]) ]
                 `shouldSatisfy`
                     optimizeNoChange
+        
+        it "should unroll a while loop" $ do
+            Program [ VariableDeclaration "i" (PrimitiveType Mutable I32) (Just $ iLit 0)
+                    , VariableDeclaration "x" (PrimitiveType Mutable I32) (Just $ iLit 1)
+                    , WhileLoop (BinaryOp Lt (Variable "i") (iLit 3))
+                        [ VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (iLit 1)) ]
+                    , ReturnStatement (Variable "x") ]
+                `shouldSatisfy` 
+                    optimizeChange
+                        [ VariableDeclaration "i" (PrimitiveType Mutable I32) (Just $ iLit 0)
+                        , VariableDeclaration "x" (PrimitiveType Mutable I32) (Just $ iLit 1)
+                        , VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (iLit 1))
+                        , VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (iLit 1))
+                        , VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (iLit 1))
+                        , ReturnStatement (Variable "x") ]
+
+            Program [ VariableDeclaration "i" (PrimitiveType Mutable I32) (Just $ iLit 0)
+                    , VariableDeclaration "x" (PrimitiveType Mutable I32) (Just $ iLit 1)
+                    , WhileLoop (BinaryOp Lt (Variable "i") (Variable "foo"))
+                        [ VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (iLit 1)) ]
+                    , ReturnStatement (Variable "x") ]
+                `shouldSatisfy` 
+                    optimizeNoChange
+
+            Program [ VariableDeclaration "i" (PrimitiveType Mutable I32) (Just $ iLit 0)
+                    , VariableDeclaration "x" (PrimitiveType Mutable I32) (Just $ iLit 1)
+                    , WhileLoop (BinaryOp Lt (Variable "i") (iLit 30))
+                        [ VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (iLit 1)) ]
+                    , ReturnStatement (Variable "x") ]
+                `shouldSatisfy`
+                    optimizeNoChange
+
+            Program [ VariableDeclaration "i" (PrimitiveType Mutable I32) (Just $ iLit 0)
+                    , VariableDeclaration "x" (PrimitiveType Mutable I32) (Just $ iLit 1)
+                    , WhileLoop (BinaryOp Lt (Variable "i") (iLit 3))
+                        [ VariableReAssignment "x" (BinaryOp Mul (Variable "x") (iLit 2))
+                        , VariableReAssignment "i" (BinaryOp Add (Variable "i") (FunctionCall "func" [Variable "i"])) ]
+                    , ReturnStatement (Variable "x") ]
+                `shouldSatisfy`
+                    optimizeNoChange
 
 -- Helpers
 
